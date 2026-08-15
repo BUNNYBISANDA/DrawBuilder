@@ -1,0 +1,5 @@
+{
+  "installCommand": "npm --prefix draw-builder-react ci",
+  "buildCommand": "npm --prefix draw-builder-react run build",
+  "outputDirectory": "draw-builder-react/dist"
+}
