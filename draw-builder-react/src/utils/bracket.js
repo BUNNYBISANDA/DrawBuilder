@@ -151,6 +151,11 @@ export function buildBracket(event) {
     if (!rounds[0][slot]) rounds[0][slot] = byeCell();
   }
 
+  // Tag every round-1 cell with the draw line it started on. This travels
+  // forward through advance()'s `{...cell}` copies, so later rounds show
+  // the player's original line number instead of an unrelated numbering.
+  rounds[0].forEach((cell, i) => { if (cell) cell.line = i + 1; });
+
   const bracket = { size, rounds, entrants: players.length, matches: buildMatches(size) };
   autoAdvanceByes(bracket);
   return { bracket, byeResult, pinResult };
