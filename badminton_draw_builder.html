@@ -608,10 +608,9 @@ function buildBracket(){
     usedEntries.add(entry.entryNo);
   });
   const byeResult = applyCustomByes(rounds[0], size, size - players.length);
-  let nextOpen = 0;
   entries.forEach(entry=>{
     if(usedEntries.has(entry.entryNo)) return;
-    nextOpen = firstOpenSlot(rounds[0]);
+    const nextOpen = firstOpenSlot(rounds[0]);
     if(nextOpen >= 0) rounds[0][nextOpen] = {...entry};
   });
   for(let slot=0;slot<size;slot++){
@@ -691,7 +690,7 @@ function renderBracket(){
 
       const sn = document.createElement('span');
       sn.className='seedno';
-      sn.textContent = cell && cell.entryNo ? cell.entryNo : '';
+      sn.textContent = r === 0 ? i + 1 : (cell && cell.entryNo ? cell.entryNo : '');
       const nm = document.createElement('span');
       nm.className='nm';
       nm.textContent = cell ? cell.name : '';
