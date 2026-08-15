@@ -196,6 +196,7 @@ export default function App() {
   }
 
   const byes = event.bracket ? event.bracket.size - event.bracket.entrants : 0;
+  const seededCount = event.bracket ? event.bracket.rounds[0].filter((c) => c && c.seed).length : 0;
 
   return (
     <>
@@ -257,6 +258,9 @@ export default function App() {
               <>
                 <span className="chip">Draw size <b>{event.bracket.size}</b> · entries <b>{event.bracket.entrants}</b></span>
                 <span className="chip">{byes ? <>Byes <b>{byes}</b></> : 'No byes'}</span>
+                <span className={'chip' + (seededCount ? ' chip-warn' : '')}>
+                  {seededCount ? <>Seeded draw · <b>{seededCount}</b> seed{seededCount === 1 ? '' : 's'} placed</> : 'Unseeded — straight paper order'}
+                </span>
               </>
             ) : null}
             <div className="stage-actions">
