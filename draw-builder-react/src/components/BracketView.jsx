@@ -84,7 +84,7 @@ export default function BracketView({
                   }
                 }}
               >
-                <span className="seedno">{cell && cell.entryNo ? cell.entryNo : ''}</span>
+                <span className="seedno">{r === 0 ? i + 1 : (cell && cell.entryNo ? cell.entryNo : '')}</span>
                 <span
                   className="nm"
                   contentEditable={editable}
