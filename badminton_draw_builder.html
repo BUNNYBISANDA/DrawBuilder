@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Badminton Draw Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --court:#173D2C; --court-soft:#1F5A3E; --tape:#12261C;
+  --cork:#D2622A; --cork-soft:#F4DCCB;
+  --hall:#EDF1EA; --card:#FFFFFF; --line:#D6DDD3;
+  --ink:#15221B; --ink-2:#5C6B60; --ink-3:#93A196;
+  --win:#E9F4E4; --win-border:#3E7D4E;
+  --bye:#F3F3EF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Instrument Sans',sans-serif;background:var(--hall);color:var(--ink);font-size:15px}
+h1,h2,h3,.disp{font-family:'Bricolage Grotesque',sans-serif}
+
+header{background:var(--court);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .mark{width:34px;height:34px;flex:none}
+header h1{font-size:21px;font-weight:800;letter-spacing:.3px}
+header .sub{font-size:12.5px;color:#BFD6C8;margin-top:1px}
+header .spacer{flex:1}
+.evt-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.evt-tab{background:transparent;border:1.5px solid #3E7458;color:#DCEBE1;padding:6px 14px;border-radius:999px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.evt-tab.active{background:#fff;color:var(--court);border-color:#fff}
+.evt-tab.add{border-style:dashed}
+
+main{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 62px)}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+
+/* ---------- left panel ---------- */
+aside{background:var(--card);border-right:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:16px}
+.panel h2{font-size:15px;font-weight:700;letter-spacing:.2px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.panel h2 .n{background:var(--court);color:#fff;width:20px;height:20px;border-radius:50%;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--cork);background:var(--cork-soft)}
+.drop p{font-size:13.5px;color:var(--ink-2);line-height:1.5}
+.drop strong{color:var(--ink)}
+.drop input{display:none}
+.or{display:flex;align-items:center;gap:10px;color:var(--ink-3);font-size:12px;margin:8px 0}
+.or::before,.or::after{content:"";height:1px;background:var(--line);flex:1}
+textarea{width:100%;min-height:88px;border:1.5px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:13.5px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--court-soft)}
+select{font-family:inherit;font-size:13.5px;border:1.5px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);padding:7px 10px}
+select:focus{outline:none;border-color:var(--court-soft)}
+.btn{font-family:inherit;font-size:14px;font-weight:600;border-radius:10px;padding:9px 14px;cursor:pointer;border:1.5px solid var(--tape);background:var(--tape);color:#fff}
+.btn.secondary{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn.secondary:hover{border-color:var(--ink-2)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.small{padding:5px 10px;font-size:12.5px;border-radius:8px}
+.btn.toggle.active{background:var(--cork-soft);border-color:var(--cork);color:#7E3417}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{font-size:12.5px;color:var(--ink-2);min-height:16px}
+.status.err{color:#A32D2D}
+.status.busy::before{content:"";display:inline-block;width:10px;height:10px;border:2px solid var(--cork);border-top-color:transparent;border-radius:50%;margin-right:6px;animation:spin .7s linear infinite;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* seeding list */
+.seedwrap{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;max-height:46vh}
+.seedhead{display:flex;justify-content:space-between;align-items:center;background:#F7F9F5;border-bottom:1px solid var(--line);padding:8px 12px;font-size:12.5px;color:var(--ink-2)}
+.seedlist{overflow:auto;flex:1}
+.seed-row{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid #EEF1EC}
+.seed-row:last-child{border-bottom:none}
+.seed-row .num{width:34px;flex:none;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:13px;color:var(--court);text-align:right}
+.seed-row input{flex:1;border:1px solid transparent;border-radius:6px;padding:4px 7px;font-family:inherit;font-size:13.5px;background:transparent;min-width:0}
+.seed-row input:hover{border-color:var(--line)}
+.seed-row input:focus{outline:none;border-color:var(--court-soft);background:#fff}
+.seed-row .mv,.seed-row .del{border:none;background:none;cursor:pointer;color:var(--ink-3);font-size:14px;padding:2px 4px;line-height:1}
+.seed-row .mv:hover{color:var(--ink)}
+.seed-row .del:hover{color:#A32D2D}
+.seedbox{border:1px solid var(--line);border-radius:12px;padding:10px;background:#F9FAF7}
+.seedbox textarea{min-height:72px;background:#fff}
+.seedbox .hintline{font-size:12px;color:var(--ink-2);line-height:1.4;margin:6px 0 8px}
+.seedbox .seedstatus{font-size:12px;color:var(--ink-2);margin-top:6px;min-height:15px}
+.seedbox .seedstatus.err{color:#A32D2D}
+
+/* ---------- bracket area ---------- */
+.stage{padding:18px 22px;overflow:auto}
+.stage-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.stage-top h2{font-size:20px;font-weight:800}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--ink-2)}
+.chip b{color:var(--ink)}
+.stage-actions{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.zoom{display:flex;gap:6px;align-items:center}
+.export-note{font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.export-note.busy{color:var(--cork)}
+.export-note.err{color:#A32D2D}
+.btn.export{background:var(--cork);border-color:var(--cork);color:#fff}
+.btn.export:hover{background:#B94F1E;border-color:#B94F1E}
+.export-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin:-4px 0 12px}
+.export-strip .btn.export{font-size:15px;padding:10px 18px}
+.export-strip .export-note{margin-left:4px}
+.sidebar-export{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#F9FAF7}
+.sidebar-export .btn{flex:1}
+.sidebar-export .export-note{display:block;margin-top:7px;text-align:center}
+.hint{font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
+.empty{border:2px dashed var(--line);border-radius:16px;padding:60px 30px;text-align:center;color:var(--ink-2)}
+.empty h3{font-size:18px;color:var(--ink);margin-bottom:6px}
+
+#viewport{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;position:relative}
+#scaler{transform-origin:0 0}
+#canvas{position:relative}
+.export-canvas{position:relative}
+.rnd-label{position:absolute;top:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#fff;background:var(--court);padding:4px 10px;border-radius:999px;white-space:nowrap}
+.slot{position:absolute;border:2px solid var(--tape);border-radius:6px;background:#fff;display:flex;align-items:center;overflow:hidden}
+.slot .seedno{flex:none;width:34px;text-align:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:11px;color:var(--cork);border-right:1px solid var(--line);align-self:stretch;display:flex;align-items:center;justify-content:center;background:#FBF7F3}
+.slot .nm{flex:1;min-width:0;padding:0 8px;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;outline:none;cursor:text}
+.slot .seedmark{flex:none;align-self:stretch;display:flex;align-items:center;padding:0 8px;border-left:1px solid var(--line);font-family:'Bricolage Grotesque',sans-serif;font-size:12px;font-weight:800;color:var(--cork);background:#FFF8F1}
+.slot.filled .nm{cursor:pointer}
+.slot.winner{background:var(--win);border-color:var(--win-border)}
+.slot.bye{background:var(--bye);border-style:dashed;color:var(--ink-3)}
+.slot.bye .nm{color:var(--ink-3);font-style:italic;cursor:default}
+.slot.champ{border-color:var(--cork);border-width:2.5px;background:var(--cork-soft)}
+.slot.champ .nm{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px}
+.slot.swapable{cursor:pointer}
+.slot.swapable:hover{box-shadow:0 0 0 2px var(--cork-soft)}
+.slot.swap-selected{outline:3px solid var(--cork);outline-offset:2px;z-index:5}
+.wire{position:absolute;background:var(--tape)}
+.footer-note{font-size:12px;color:var(--ink-3);margin-top:10px}
+
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+    <circle cx="11" cy="29" r="5.5" fill="#D2622A"/>
+    <path d="M15 25 33 7M20 30l11-11M15 25l3 3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <h1>Badminton draw builder</h1>
+    <div class="sub">Upload a list, generate the knockout draw, edit everything.</div>
+  </div>
+  <div class="spacer"></div>
+  <nav class="evt-tabs" id="evtTabs"></nav>
+</header>
+
+<main>
+<aside>
+  <section class="panel">
+    <h2><span class="n">1</span> Import players</h2>
+    <label class="drop" id="dropZone">
+      <p><strong>Drop an Excel / CSV file or a photo of the entry list</strong><br>or click to browse. Names are read automatically.</p>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,image/*">
+    </label>
+    <div class="or">or paste names</div>
+    <textarea id="pasteBox" placeholder="One player (or pair) per line&#10;Somchai P.&#10;Bunny J.&#10;Arisa / Mook"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="loadPaste">Add pasted names</button>
+      <button class="btn secondary" id="clearAll">Clear list</button>
+    </div>
+    <div class="status" id="importStatus"></div>
+  </section>
+
+  <section class="panel" style="flex:1;display:flex;flex-direction:column;min-height:0">
+    <h2><span class="n">2</span> Entries <span style="font-weight:400;font-size:12.5px;color:var(--ink-2)">- normal entry numbers</span></h2>
+    <div class="seedwrap">
+      <div class="seedhead">
+        <span id="countLabel">0 entries</span>
+        <span class="row" style="gap:6px">
+          <button class="btn small secondary" id="shuffleBtn" title="Randomize the normal entry order">Shuffle</button>
+          <button class="btn small secondary" id="addOne">+ Add</button>
+        </span>
+      </div>
+      <div class="seedlist" id="seedList"></div>
+    </div>
+    <div class="seedbox" style="margin-top:12px">
+      <h2><span class="n">3</span> Seeded players <span style="font-weight:400;font-size:12.5px;color:var(--ink-2)">- seed order only</span></h2>
+      <p class="hintline">Type only seeded players here, one per line. Line 1 is seed (1), line 2 is seed (2), etc.</p>
+      <textarea id="seedBox" placeholder="Bunny Jayathilaka&#10;Somchai P.&#10;Arisa / Mook"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn small secondary" id="clearSeeds">Clear seeds</button>
+      </div>
+      <div class="seedstatus" id="seedStatus"></div>
+    </div>
+    <div class="seedbox" style="margin-top:12px">
+      <h2><span class="n">4</span> Draw size</h2>
+      <p class="hintline">Choose 32 to make a 32 draw even when you only have 16 entries.</p>
+      <select id="drawSizeSelect" style="width:100%">
+        <option value="auto">Auto from entries</option>
+        <option value="8">8 draw</option>
+        <option value="16">16 draw</option>
+        <option value="32">32 draw</option>
+        <option value="64">64 draw</option>
+        <option value="128">128 draw</option>
+        <option value="256">256 draw</option>
+      </select>
+      <p class="hintline">Custom BYE lines, optional. Type draw line numbers separated by commas, spaces, or new lines.</p>
+      <textarea id="byeLinesBox" placeholder="Example for 32 draw:&#10;2, 4, 6, 8, 10, 12, 14, 16"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn small secondary" id="clearByes">Clear BYEs</button>
+      </div>
+      <div class="seedstatus" id="byeStatus"></div>
+    </div>
+    <button class="btn" id="genBtn" style="margin-top:12px;width:100%">Generate bracket</button>
+    <div class="sidebar-export">
+      <div class="row">
+        <button class="btn export" id="sidePdfBtn" title="Downloads a bracket-only PDF. Each page contains up to 32 bracket slots.">Export PDF</button>
+      </div>
+      <span class="export-note" id="sideExportNote">Export bracket only - 32 slots per page</span>
+    </div>
+  </section>
+</aside>
+
+<section class="stage">
+  <div class="stage-top">
+    <h2 id="stageTitle">Bracket</h2>
+    <span class="chip" id="chipSize"></span>
+    <span class="chip" id="chipByes"></span>
+    <div class="stage-actions">
+      <div class="zoom">
+        <button class="btn small secondary" id="zoomOut">-</button>
+        <span class="chip" id="zoomLabel"><b>100%</b></span>
+        <button class="btn small secondary" id="zoomIn">+</button>
+      </div>
+      <button class="btn small secondary toggle" id="moveByesBtn" title="Click two round-1 slots to swap players and BYEs.">Move BYEs</button>
+      <button class="btn small export" id="pdfBtn" title="Downloads a bracket-only PDF. Each page contains up to 32 bracket slots.">Export PDF</button>
+      <span class="export-note" id="exportNote">32 slots per page</span>
+    </div>
+  </div>
+  <div class="export-strip">
+    <button class="btn export" id="stripPdfBtn" title="Downloads only the bracket as a PDF. Each page contains up to 32 bracket slots.">Export PDF</button>
+    <span class="export-note" id="stripExportNote">Exports bracket only - 32 slots per page</span>
+  </div>
+  <p class="hint">Choose draw size and custom BYE lines on the left. After generating, Move BYEs can still swap two round-1 slots if you need a quick adjustment.</p>
+  <div class="empty" id="emptyState">
+    <h3>No draw yet</h3>
+    <p>Import entries, choose draw size, optionally type custom BYE line numbers, then press <b>Generate bracket</b>.<br>Example: 16 entries can be generated as a 32 draw with BYEs on the lines you choose.</p>
+  </div>
+  <div id="viewport" style="display:none">
+    <div id="scaler"><div id="canvas"></div></div>
+  </div>
+  <p class="footer-note" id="footNote" style="display:none">BYEs auto-advance their opponent. Champion appears in the orange box.</p>
+</section>
+</main>
+
+<script>
+/* ================= state ================= */
+const state = {
+  events: [
+    { name: "Singles", players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
+    { name: "Doubles", players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
+  ],
+  active: 0,
+  zoom: 1,
+  moveByes: false,
+  swapSlot: null,
+};
+function ensureEventShape(ev){
+  if(!Array.isArray(ev.seeds)) ev.seeds = [];
+  if(!Array.isArray(ev.customByes)) ev.customByes = [];
+  if(!ev.drawSize) ev.drawSize = 'auto';
+  return ev;
+}
+const cur = () => ensureEventShape(state.events[state.active]);
+
+/* ================= event tabs ================= */
+function renderTabs(){
+  const nav = document.getElementById('evtTabs');
+  nav.innerHTML = '';
+  state.events.forEach((ev,i)=>{
+    const b = document.createElement('button');
+    b.className = 'evt-tab' + (i===state.active?' active':'');
+    b.textContent = ev.name;
+    b.onclick = ()=>{ state.active = i; state.swapSlot = null; state.moveByes = false; renderAll(); };
+    b.ondblclick = ()=>{
+      const n = prompt('Rename event', ev.name);
+      if(n){ ev.name = n.trim(); renderAll(); }
+    };
+    nav.appendChild(b);
+  });
+  const add = document.createElement('button');
+  add.className = 'evt-tab add';
+  add.textContent = '+ Event';
+  add.onclick = ()=>{
+    const n = prompt('Event name (e.g. Mixed Doubles)');
+    if(n){ state.events.push({name:n.trim(),players:[],seeds:[],drawSize:'auto',customByes:[],bracket:null}); state.active = state.events.length-1; renderAll(); }
+  };
+  nav.appendChild(add);
+}
+
+/* ================= import ================= */
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('fileInput');
+const setStatus = (msg, cls='') => { const s = document.getElementById('importStatus'); s.textContent = msg; s.className = 'status '+cls; };
+
+dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', ()=>dz.classList.remove('over'));
+dz.addEventListener('drop', e=>{ e.preventDefault(); dz.classList.remove('over'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fi.addEventListener('change', ()=>{ if(fi.files[0]) handleFile(fi.files[0]); fi.value=''; });
+
+function handleFile(f){
+  if(f.type.startsWith('image/')) return handleImage(f);
+  if(/\.(xlsx|xls|csv)$/i.test(f.name)) return handleSheet(f);
+  setStatus('Unsupported file — use .xlsx, .csv, or an image.', 'err');
+}
+
+function handleSheet(f){
+  setStatus('Reading spreadsheet…','busy');
+  const r = new FileReader();
+  r.onload = e=>{
+    try{
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const names = [];
+      wb.SheetNames.forEach(sn=>{
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1});
+        rows.forEach(row=>{
+          (row||[]).forEach(cell=>{
+            if(typeof cell === 'string'){
+              const v = cell.trim();
+              if(v && !/^(seed|no\.?|#|player|name|round|champion|winner|match)/i.test(v) && !/^\d+$/.test(v)) names.push(v);
+            }
+          });
+        });
+      });
+      addNames(names, `Loaded ${names.length} names from ${f.name}`);
+    }catch(err){ setStatus('Could not read that file: '+err.message,'err'); }
+  };
+  r.readAsArrayBuffer(f);
+}
+
+async function handleImage(f){
+  setStatus('Reading names from the photo with AI…','busy');
+  try{
+    const b64 = await new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = ()=>res(r.result.split(',')[1]);
+      r.onerror = ()=>rej(new Error('read failed'));
+      r.readAsDataURL(f);
+    });
+    const mt = f.type || 'image/png';
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mt,data:b64}},
+          {type:'text',text:'This image contains a list of badminton tournament entrants (players or doubles pairs). Extract every entrant name in the order listed. Respond ONLY with a JSON array of strings, no markdown, no explanation. Ignore headings, seed numbers, and column titles.'}
+        ]}]
+      })
+    });
+    const data = await resp.json();
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const clean = text.replace(/```json|```/g,'').trim();
+    const arr = JSON.parse(clean);
+    if(!Array.isArray(arr) || !arr.length) throw new Error('no names found');
+    addNames(arr.map(String), `Read ${arr.length} names from the photo`);
+  }catch(err){
+    setStatus('Could not extract names from the image. Try a clearer photo, or paste the names instead.','err');
+  }
+}
+
+document.getElementById('loadPaste').onclick = ()=>{
+  const lines = document.getElementById('pasteBox').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){ setStatus('Nothing to add — paste one name per line.','err'); return; }
+  addNames(lines, `Added ${lines.length} names`);
+  document.getElementById('pasteBox').value='';
+};
+document.getElementById('clearAll').onclick = ()=>{ cur().players = []; cur().seeds = []; cur().customByes = []; cur().bracket = null; renderAll(); setStatus('List cleared.'); };
+
+function addNames(names, msg){
+  const seen = new Set(cur().players.map(p=>p.toLowerCase()));
+  let added = 0;
+  names.forEach(n=>{
+    const v = n.trim();
+    if(v && !seen.has(v.toLowerCase())){ cur().players.push(v); seen.add(v.toLowerCase()); added++; }
+  });
+  if(added) cur().bracket = null;
+  setStatus(msg + (added<names.length? ` (${names.length-added} duplicates skipped)`:''));
+  renderSeeds();
+  if(added) renderBracket();
+}
+
+/* ================= seeding list ================= */
+function renderSeeds(){
+  const list = document.getElementById('seedList');
+  const players = cur().players;
+  document.getElementById('countLabel').textContent = players.length + ' entries';
+  list.innerHTML = '';
+  players.forEach((p,i)=>{
+    const row = document.createElement('div');
+    row.className = 'seed-row';
+    row.innerHTML = `<span class="num">${i+1}</span>`;
+    const inp = document.createElement('input');
+    inp.value = p;
+    inp.onchange = ()=>{
+      const oldName = players[i];
+      const nextName = inp.value.trim() || oldName;
+      players[i] = nextName;
+      cur().seeds = cur().seeds.map(seed=>normalizeName(seed) === normalizeName(oldName) ? nextName : seed);
+      cur().bracket = null;
+      renderSeeds();
+      renderBracket();
+    };
+    const up = document.createElement('button'); up.className='mv'; up.textContent='▲'; up.title='Move up entry number';
+    up.onclick = ()=>{ if(i>0){ [players[i-1],players[i]]=[players[i],players[i-1]]; cur().bracket = null; renderSeeds(); renderBracket(); } };
+    const dn = document.createElement('button'); dn.className='mv'; dn.textContent='▼'; dn.title='Move down entry number';
+    dn.onclick = ()=>{ if(i<players.length-1){ [players[i+1],players[i]]=[players[i],players[i+1]]; cur().bracket = null; renderSeeds(); renderBracket(); } };
+    const del = document.createElement('button'); del.className='del'; del.textContent='✕'; del.title='Remove';
+    del.onclick = ()=>{ players.splice(i,1); cur().bracket = null; renderSeeds(); renderBracket(); };
+    row.append(inp, up, dn, del);
+    list.appendChild(row);
+  });
+  renderSeedBox();
+}
+function cleanSeedName(name){
+  return name.replace(/\s*\(\d+\)\s*$/,'').trim();
+}
+function normalizeName(name){
+  return cleanSeedName(String(name || '')).toLowerCase().replace(/\s+/g, ' ');
+}
+function parseSeedLines(text){
+  return text.split(/\n+/).map(s=>cleanSeedName(s)).filter(Boolean);
+}
+function parseLineNumbers(text){
+  return (text.match(/\d+/g) || []).map(s=>parseInt(s, 10));
+}
+function setSeedStatus(msg, cls=''){
+  const el = document.getElementById('seedStatus');
+  el.textContent = msg;
+  el.className = 'seedstatus ' + cls;
+}
+function setByeStatus(msg, cls=''){
+  const el = document.getElementById('byeStatus');
+  el.textContent = msg;
+  el.className = 'seedstatus ' + cls;
+}
+function renderSeedBox(){
+  const box = document.getElementById('seedBox');
+  if(document.activeElement !== box) box.value = cur().seeds.join('\n');
+  const byes = document.getElementById('byeLinesBox');
+  if(document.activeElement !== byes) byes.value = cur().customByes.join(', ');
+  document.getElementById('drawSizeSelect').value = cur().drawSize || 'auto';
+  updateSeedStatus();
+  updateByeStatus();
+}
+function updateSeedsFromBox(){
+  cur().seeds = parseSeedLines(document.getElementById('seedBox').value);
+  cur().bracket = null;
+  updateSeedStatus();
+  renderBracket();
+}
+function updateByesFromBox(){
+  cur().customByes = Array.from(new Set(parseLineNumbers(document.getElementById('byeLinesBox').value)));
+  cur().bracket = null;
+  state.moveByes = false;
+  state.swapSlot = null;
+  updateByeStatus();
+  renderBracket();
+}
+function updateSeedStatus(){
+  const seeds = cur().seeds;
+  if(!seeds.length){ setSeedStatus('No seeded players set. All entries fill open lines in entry order.'); return; }
+  const entryNames = new Set(cur().players.map(normalizeName));
+  const missing = seeds.filter(name=>!entryNames.has(normalizeName(name)));
+  if(missing.length){
+    setSeedStatus(`${missing.length} seed${missing.length===1?'':'s'} not found in entries: ${missing.slice(0,3).join(', ')}${missing.length>3?'...':''}`, 'err');
+  } else {
+    setSeedStatus(`${seeds.length} seeded player${seeds.length===1?'':'s'} set.`);
+  }
+}
+function updateByeStatus(){
+  const byes = cur().customByes;
+  if(!byes.length){ setByeStatus('No custom BYE lines set. BYEs fill remaining open lines automatically.'); return; }
+  const entryCount = cur().players.filter(Boolean).length;
+  if(entryCount < 2){ setByeStatus(`${byes.length} custom BYE line${byes.length===1?'':'s'} set.`); return; }
+  const drawSize = selectedDrawSize(entryCount);
+  const byeCount = drawSize - entryCount;
+  const invalid = byes.filter(line=>line < 1 || line > drawSize);
+  const tooMany = byes.length > byeCount;
+  if(!byeCount){
+    setByeStatus('This draw has no BYEs. Custom BYE lines will be ignored.', 'err');
+  } else if(invalid.length){
+    setByeStatus(`Invalid BYE line${invalid.length===1?'':'s'} for ${drawSize} draw: ${invalid.slice(0,5).join(', ')}`, 'err');
+  } else if(tooMany){
+    setByeStatus(`Only ${byeCount} BYE${byeCount===1?'':'s'} needed. Extra custom lines will be ignored.`, 'err');
+  } else {
+    setByeStatus(`${byes.length} custom BYE line${byes.length===1?'':'s'} set. ${byeCount - byes.length} BYE${byeCount - byes.length===1?'':'s'} will auto-fill.`);
+  }
+}
+document.getElementById('addOne').onclick = ()=>{ cur().players.push('New player'); cur().bracket = null; renderSeeds(); renderBracket(); };
+document.getElementById('shuffleBtn').onclick = ()=>{
+  const p = cur().players;
+  for(let i=p.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [p[i],p[j]]=[p[j],p[i]]; }
+  cur().bracket = null;
+  renderSeeds();
+  renderBracket();
+};
+document.getElementById('seedBox').addEventListener('input', updateSeedsFromBox);
+document.getElementById('byeLinesBox').addEventListener('input', updateByesFromBox);
+document.getElementById('clearSeeds').onclick = ()=>{ cur().seeds = []; cur().bracket = null; renderSeedBox(); renderBracket(); };
+document.getElementById('clearByes').onclick = ()=>{ cur().customByes = []; cur().bracket = null; renderSeedBox(); renderBracket(); };
+document.getElementById('drawSizeSelect').onchange = e=>{
+  cur().drawSize = e.target.value;
+  cur().bracket = null;
+  state.moveByes = false;
+  state.swapSlot = null;
+  updateByeStatus();
+  renderBracket();
+};
+
+/* ================= bracket model ================= */
+function seedOrder(n){
+  let order = [1];
+  while(order.length < n){
+    const m = order.length*2;
+    const next = [];
+    order.forEach(s=>{ next.push(s, m+1-s); });
+    order = next;
+  }
+  return order;
+}
+
+function nextPowerOfTwo(n){
+  let size = 2;
+  while(size < n) size *= 2;
+  return size;
+}
+function selectedDrawSize(entryCount){
+  const needed = nextPowerOfTwo(entryCount);
+  const chosen = cur().drawSize === 'auto' ? 0 : parseInt(cur().drawSize, 10);
+  return Math.max(needed, chosen || needed);
+}
+function firstOpenSlot(round){
+  return round.findIndex(cell=>!cell);
+}
+function firstOpenSlotInEmptyMatch(round){
+  for(let i=0;i<round.length;i+=2){
+    if(!round[i] && !round[i+1]) return i;
+  }
+  return -1;
+}
+function byeCell(){
+  return {name:'BYE', entryNo:null, seed:null, bye:true};
+}
+function applyCustomByes(round, size, byeCount){
+  const result = {applied:0, skipped:[], invalid:[], extra:0};
+  if(!byeCount) return result;
+  const lines = cur().customByes;
+  for(const line of lines){
+    if(result.applied >= byeCount){ result.extra++; continue; }
+    if(line < 1 || line > size){ result.invalid.push(line); continue; }
+    const slot = line - 1;
+    if(round[slot]){ result.skipped.push(line); continue; }
+    round[slot] = byeCell();
+    result.applied++;
+  }
+  return result;
+}
+function showByeBuildStatus(result, drawSize, byeCount){
+  if(!cur().customByes.length){
+    setByeStatus(byeCount ? `${byeCount} BYE${byeCount===1?'':'s'} auto-filled.` : 'No BYEs needed.');
+    return;
+  }
+  if(!byeCount){
+    setByeStatus('This draw has no BYEs. Custom BYE lines were ignored.', 'err');
+    return;
+  }
+  if(result.invalid.length){
+    setByeStatus(`Invalid BYE line${result.invalid.length===1?'':'s'} for ${drawSize} draw: ${result.invalid.slice(0,5).join(', ')}`, 'err');
+    return;
+  }
+  if(result.skipped.length){
+    setByeStatus(`Custom BYE line${result.skipped.length===1?'':'s'} skipped because occupied by seeded players: ${result.skipped.slice(0,5).join(', ')}`, 'err');
+    return;
+  }
+  if(result.extra){
+    setByeStatus(`Applied ${result.applied} custom BYE${result.applied===1?'':'s'}. Extra BYE lines ignored.`, 'err');
+    return;
+  }
+  setByeStatus(`Applied ${result.applied} custom BYE${result.applied===1?'':'s'}. ${byeCount - result.applied} BYE${byeCount - result.applied===1?'':'s'} auto-filled.`);
+}
+function autoAdvanceByes(br){
+  for(let r=1;r<br.rounds.length;r++) br.rounds[r].fill(null);
+  for(let m=0;m<br.size/2;m++){
+    const a = br.rounds[0][2*m], b = br.rounds[0][2*m+1];
+    if(a && b && a.bye && !b.bye) br.rounds[1][m] = {...b};
+    if(a && b && b.bye && !a.bye) br.rounds[1][m] = {...a};
+  }
+}
+
+function buildBracket(){
+  const players = cur().players.map(name=>String(name || '').trim()).filter(Boolean);
+  if(players.length < 2){ setStatus('Need at least 2 entries to make a draw.','err'); return; }
+  const size = selectedDrawSize(players.length);
+  const seedLines = seedOrder(size);
+  const roundsCount = Math.log2(size)+1;
+  const rounds = [];
+  for(let r=0;r<roundsCount;r++) rounds.push(new Array(size >> r).fill(null));
+
+  const entries = players.map((name, i)=>({name, entryNo:i+1, seed:null, bye:false}));
+  const entryByName = new Map();
+  entries.forEach(entry=>{
+    const key = normalizeName(entry.name);
+    if(!entryByName.has(key)) entryByName.set(key, entry);
+  });
+
+  const usedEntries = new Set();
+  cur().seeds.forEach((seedName, seedIndex)=>{
+    const entry = entryByName.get(normalizeName(seedName));
+    const line = seedLines[seedIndex];
+    if(!entry || !line || usedEntries.has(entry.entryNo)) return;
+    entry.seed = seedIndex + 1;
+    rounds[0][line - 1] = {...entry};
+    usedEntries.add(entry.entryNo);
+  });
+  const byeResult = applyCustomByes(rounds[0], size, size - players.length);
+  let nextOpen = 0;
+  entries.forEach(entry=>{
+    if(usedEntries.has(entry.entryNo)) return;
+    const emptyMatchSlot = firstOpenSlotInEmptyMatch(rounds[0]);
+    nextOpen = emptyMatchSlot >= 0 ? emptyMatchSlot : firstOpenSlot(rounds[0]);
+    if(nextOpen >= 0) rounds[0][nextOpen] = {...entry};
+  });
+  for(let slot=0;slot<size;slot++){
+    if(!rounds[0][slot]) rounds[0][slot] = byeCell();
+  }
+  cur().bracket = {size, rounds, entrants: players.length};
+  autoAdvanceByes(cur().bracket);
+  showByeBuildStatus(byeResult, size, size - players.length);
+  state.moveByes = false;
+  state.swapSlot = null;
+  renderBracket();
+}
+document.getElementById('genBtn').onclick = buildBracket;
+document.getElementById('moveByesBtn').onclick = ()=>{
+  if(!cur().bracket){ setStatus('Generate a bracket before moving BYEs.', 'err'); return; }
+  state.moveByes = !state.moveByes;
+  state.swapSlot = null;
+  renderBracket();
+};
+
+/* ================= bracket render ================= */
+const BOX_W = 220, BOX_H = 28, VGAP = 8, COL_GAP = 38, TOP = 36;
+
+function displayPlayerName(cell){
+  if(!cell) return '';
+  return cell.seed ? `${cell.name} (${cell.seed})` : cell.name;
+}
+
+function renderBracket(){
+  const br = cur().bracket;
+  const empty = document.getElementById('emptyState');
+  const vp = document.getElementById('viewport');
+  const note = document.getElementById('footNote');
+  document.getElementById('stageTitle').textContent = cur().name + ' draw';
+  updateMoveByesButton();
+  if(!br){ empty.style.display='block'; vp.style.display='none'; note.style.display='none';
+    document.getElementById('chipSize').textContent=''; document.getElementById('chipByes').textContent=''; return; }
+  empty.style.display='none'; vp.style.display='block'; note.style.display='block';
+  note.textContent = state.moveByes
+    ? 'Move BYEs mode: click one round-1 slot, then another round-1 slot to swap them. Results reset after each swap.'
+    : 'BYEs auto-advance their opponent. Champion appears in the orange box.';
+  document.getElementById('chipSize').innerHTML = `Draw size <b>${br.size}</b> · entries <b>${br.entrants}</b>`;
+  const byes = br.size - br.entrants;
+  document.getElementById('chipByes').innerHTML = byes ? `Byes <b>${byes}</b>` : 'No byes';
+
+  const canvas = document.getElementById('canvas');
+  canvas.innerHTML = '';
+  const unit = BOX_H + VGAP;
+  const R = br.rounds.length;
+  canvas.style.height = (TOP + br.size*unit) + 'px';
+  canvas.style.width  = (R*(BOX_W+COL_GAP)) + 'px';
+
+  const centerY = (r,i)=> TOP + (i + 0.5) * unit * (1<<r) - BOX_H/2;
+  const labels = [];
+  for(let r=0;r<R;r++){
+    const teams = br.size >> r;
+    labels.push(r===R-1 ? 'Champion' : teams===2 ? 'Final' : teams===4 ? 'Semifinals' : teams===8 ? 'Quarterfinals' : 'Round of '+teams);
+  }
+
+  for(let r=0;r<R;r++){
+    const x = r*(BOX_W+COL_GAP);
+    const lab = document.createElement('div');
+    lab.className = 'rnd-label';
+    lab.style.left = x+'px';
+    lab.textContent = labels[r];
+    canvas.appendChild(lab);
+
+    const count = br.size >> r;
+    for(let i=0;i<count;i++){
+      const y = centerY(r,i);
+      const cell = br.rounds[r][i];
+      const slot = document.createElement('div');
+      const swapable = state.moveByes && r===0 && cell;
+      const selected = swapable && state.swapSlot === i;
+      slot.className = 'slot' + (cell ? (cell.bye?' bye':' filled') : '') + (r===R-1 && cell ? ' champ winner' : '') + (swapable ? ' swapable' : '') + (selected ? ' swap-selected' : '');
+      slot.style.cssText = `left:${x}px;top:${y}px;width:${BOX_W}px;height:${BOX_H}px`;
+
+      const sn = document.createElement('span');
+      sn.className='seedno';
+      sn.textContent = cell && cell.entryNo ? cell.entryNo : '';
+      const nm = document.createElement('span');
+      nm.className='nm';
+      nm.textContent = cell ? cell.name : '';
+      const seedMark = document.createElement('span');
+      seedMark.className = 'seedmark';
+      seedMark.textContent = cell && cell.seed ? `(${cell.seed})` : '';
+      if(r===0 && cell && !cell.bye && !state.moveByes){
+        nm.contentEditable = true;
+        nm.addEventListener('blur', ()=>{
+          const v = cleanSeedName(nm.textContent);
+          if(v){
+            cell.name = v;
+            cur().players[cell.entryNo-1] = v;
+            if(cell.seed) cur().seeds[cell.seed-1] = v;
+            propagateRename(br, cell.entryNo, v);
+            renderSeeds();
+            renderBracket();
+          }
+          else nm.textContent = cell.name;
+        });
+        nm.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); nm.blur(); } });
+      }
+      slot.append(sn, nm);
+      if(seedMark.textContent) slot.appendChild(seedMark);
+
+      if(swapable){
+        slot.title = selected ? 'Selected - click another round-1 slot to swap' : 'Click to select this round-1 slot for swapping';
+        slot.addEventListener('click', ()=>handleRoundOneSwap(br, i));
+      } else if(cell && !cell.bye && r < R-1){
+        slot.title = 'Click to advance ' + displayPlayerName(cell);
+        slot.addEventListener('click', e=>{
+          if(e.target === nm && r===0 && document.activeElement===nm) return;
+          advance(br, r, i);
+        });
+      }
+      canvas.appendChild(slot);
+    }
+
+    if(r < R-1){
+      for(let p=0;p<(br.size>>(r+1));p++){
+        const y1 = centerY(r,2*p)+BOX_H/2, y2 = centerY(r,2*p+1)+BOX_H/2, ym = centerY(r+1,p)+BOX_H/2;
+        const sx = x+BOX_W, mx = x+BOX_W+COL_GAP/2;
+        addWire(canvas, sx, y1-1, COL_GAP/2, 2);
+        addWire(canvas, sx, y2-1, COL_GAP/2, 2);
+        addWire(canvas, mx-1, y1-1, 2, y2-y1+2);
+        addWire(canvas, mx, ym-1, COL_GAP/2, 2);
+      }
+    }
+  }
+  applyZoom();
+}
+function addWire(parent,l,t,w,h){
+  const d = document.createElement('div');
+  d.className='wire';
+  d.style.cssText=`left:${l}px;top:${t}px;width:${w}px;height:${h}px`;
+  parent.appendChild(d);
+}
+function updateMoveByesButton(){
+  const btn = document.getElementById('moveByesBtn');
+  if(!btn) return;
+  const hasBracket = !!cur().bracket;
+  btn.disabled = !hasBracket;
+  btn.classList.toggle('active', state.moveByes && hasBracket);
+  btn.textContent = state.moveByes && hasBracket
+    ? (state.swapSlot === null ? 'Move BYEs: pick slot' : 'Move BYEs: pick target')
+    : 'Move BYEs';
+}
+function handleRoundOneSwap(br, slotIndex){
+  if(state.swapSlot === null){
+    state.swapSlot = slotIndex;
+    renderBracket();
+    return;
+  }
+  if(state.swapSlot === slotIndex){
+    state.swapSlot = null;
+    renderBracket();
+    return;
+  }
+
+  const first = state.swapSlot;
+  [br.rounds[0][first], br.rounds[0][slotIndex]] = [br.rounds[0][slotIndex], br.rounds[0][first]];
+  state.swapSlot = null;
+  autoAdvanceByes(br);
+  renderBracket();
+}
+function advance(br, r, i){
+  const cell = br.rounds[r][i];
+  if(!cell || cell.bye) return;
+  const nextI = i>>1;
+  const existing = br.rounds[r+1][nextI];
+  if(samePlayer(existing, cell) && !confirm('Remove '+displayPlayerName(cell)+' from the next round?')){ return; }
+  if(samePlayer(existing, cell)){
+    // undo: clear this and all downstream copies of the name
+    clearDownstream(br, r+1, nextI, cell);
+  } else {
+    if(existing) clearDownstream(br, r+1, nextI, existing);
+    br.rounds[r+1][nextI] = {...cell};
+  }
+  renderBracket();
+}
+function samePlayer(a, b){
+  return !!(a && b && a.entryNo === b.entryNo && a.name === b.name);
+}
+function clearDownstream(br, r, i, player){
+  if(r >= br.rounds.length) return;
+  const c = br.rounds[r][i];
+  if(samePlayer(c, player)){
+    br.rounds[r][i] = null;
+    clearDownstream(br, r+1, i>>1, player);
+  }
+}
+function propagateRename(br, entryNo, newName){
+  br.rounds.forEach(round=>round.forEach(c=>{ if(c && c.entryNo===entryNo) c.name = newName; }));
+}
+
+/* ================= zoom & export ================= */
+function applyZoom(){
+  const s = document.getElementById('scaler');
+  s.style.transform = `scale(${state.zoom})`;
+  const c = document.getElementById('canvas');
+  s.style.width  = (parseFloat(c.style.width)*state.zoom)+'px';
+  s.style.height = (parseFloat(c.style.height)*state.zoom)+'px';
+  document.getElementById('zoomLabel').innerHTML = `<b>${Math.round(state.zoom*100)}%</b>`;
+}
+document.getElementById('zoomIn').onclick = ()=>{ state.zoom = Math.min(1.5, state.zoom+0.1); applyZoom(); };
+document.getElementById('zoomOut').onclick = ()=>{ state.zoom = Math.max(0.3, state.zoom-0.1); applyZoom(); };
+
+function setExportStatus(msg, cls=''){
+  ['exportNote','sideExportNote','stripExportNote'].forEach(id=>{
+    const note = document.getElementById(id);
+    if(!note) return;
+    note.textContent = msg;
+    note.className = 'export-note ' + cls;
+  });
+}
+
+function getExportLayout(){
+  const br = cur().bracket;
+  if(!br){
+    setStatus('Generate a bracket before exporting.', 'err');
+    return null;
+  }
+
+  const canvas = document.getElementById('canvas');
+  const width = parseFloat(canvas.style.width) || canvas.scrollWidth;
+  const height = parseFloat(canvas.style.height) || canvas.scrollHeight;
+  // Conservative A4 landscape content box in CSS pixels after margins.
+  const pageWidth = 990;
+  const pageHeight = 720;
+  const targetPages = Math.max(1, Math.ceil(br.size / 32));
+  const scale = Math.min(1, pageWidth / width, (pageHeight * targetPages) / height);
+  return {
+    width,
+    height,
+    scale,
+    scaledWidth: Math.ceil(width * scale),
+    scaledHeight: Math.ceil(height * scale),
+  };
+}
+
+function cloneCanvasForExport(layout){
+  const clone = document.getElementById('canvas').cloneNode(true);
+  clone.removeAttribute('id');
+  clone.classList.add('export-canvas');
+  clone.style.width = layout.width + 'px';
+  clone.style.height = layout.height + 'px';
+  clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+  return clone;
+}
+
+function safeFileName(value){
+  return (value || 'badminton-draw')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'badminton-draw';
+}
+
+function createPdfPageNode(layout, pageIndex, slotsPerPage){
+  const br = cur().bracket;
+  const unit = BOX_H + VGAP;
+  const firstSlot = pageIndex * slotsPerPage;
+  const slotCount = Math.min(slotsPerPage, br.size - firstSlot);
+  const pageHeight = TOP + slotCount * unit;
+
+  const host = document.createElement('div');
+  host.style.cssText = [
+    'position:fixed',
+    'left:-10000px',
+    'top:0',
+    `width:${layout.width}px`,
+    `height:${pageHeight}px`,
+    'overflow:hidden',
+    'background:#fff',
+    'pointer-events:none',
+    'z-index:9999',
+  ].join(';');
+
+  const page = document.createElement('div');
+  page.style.cssText = [
+    'position:relative',
+    `width:${layout.width}px`,
+    `height:${pageHeight}px`,
+    'overflow:hidden',
+    'background:#fff',
+  ].join(';');
+
+  const body = cloneCanvasForExport(layout);
+  body.style.position = 'absolute';
+  body.style.left = '0';
+  body.style.top = '0';
+  body.style.transform = `translateY(${-firstSlot * unit}px)`;
+  body.style.transformOrigin = '0 0';
+  page.appendChild(body);
+
+  if(pageIndex > 0){
+    const labelsClip = document.createElement('div');
+    labelsClip.style.cssText = [
+      'position:absolute',
+      'left:0',
+      'top:0',
+      `width:${layout.width}px`,
+      `height:${TOP}px`,
+      'overflow:hidden',
+      'background:#fff',
+      'z-index:2',
+    ].join(';');
+
+    const labels = cloneCanvasForExport(layout);
+    labels.style.position = 'absolute';
+    labels.style.left = '0';
+    labels.style.top = '0';
+    labelsClip.appendChild(labels);
+    page.appendChild(labelsClip);
+  }
+
+  host.appendChild(page);
+  return {host, page, pageHeight};
+}
+
+async function exportBracketPdf(){
+  const layout = getExportLayout();
+  if(!layout){
+    setExportStatus('generate bracket first', 'err');
+    return;
+  }
+
+  const JsPdfCtor = window.jspdf && window.jspdf.jsPDF;
+  if(!window.html2canvas || !JsPdfCtor){
+    setExportStatus('PDF tools did not load', 'err');
+    return;
+  }
+
+  const pdfButtons = ['pdfBtn','sidePdfBtn','stripPdfBtn']
+    .map(id=>document.getElementById(id))
+    .filter(Boolean);
+  pdfButtons.forEach(btn=>{ btn.disabled = true; });
+
+  try{
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+
+    const slotsPerPage = 32;
+    const pages = Math.max(1, Math.ceil(cur().bracket.size / slotsPerPage));
+    const pdf = new JsPdfCtor({orientation:'landscape', unit:'pt', format:'a4'});
+    const margin = 22.7; // 8mm
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const boxWidth = pdfWidth - margin * 2;
+    const boxHeight = pdfHeight - margin * 2;
+
+    for(let pageIndex = 0; pageIndex < pages; pageIndex++){
+      setExportStatus(`building PDF ${pageIndex + 1}/${pages}`, 'busy');
+      const slice = createPdfPageNode(layout, pageIndex, slotsPerPage);
+      document.body.appendChild(slice.host);
+
+      const imageCanvas = await html2canvas(slice.page, {
+        backgroundColor:'#ffffff',
+        scale:2,
+        useCORS:true,
+        logging:false,
+        width:layout.width,
+        height:slice.pageHeight,
+        windowWidth:layout.width,
+        windowHeight:slice.pageHeight,
+      });
+      slice.host.remove();
+
+      if(pageIndex > 0) pdf.addPage('a4', 'landscape');
+
+      const imageData = imageCanvas.toDataURL('image/png');
+      const fit = Math.min(boxWidth / imageCanvas.width, boxHeight / imageCanvas.height);
+      const imageWidth = imageCanvas.width * fit;
+      const imageHeight = imageCanvas.height * fit;
+      pdf.addImage(
+        imageData,
+        'PNG',
+        (pdfWidth - imageWidth) / 2,
+        margin,
+        imageWidth,
+        imageHeight,
+        undefined,
+        'FAST'
+      );
+    }
+
+    pdf.save(safeFileName(cur().name + '-draw') + '.pdf');
+    setExportStatus(`PDF saved - ${pages} page${pages === 1 ? '' : 's'}`);
+  }catch(err){
+    setExportStatus('PDF export failed', 'err');
+    console.error(err);
+  }finally{
+    pdfButtons.forEach(btn=>{ btn.disabled = false; });
+  }
+}
+document.getElementById('pdfBtn').onclick = exportBracketPdf;
+document.getElementById('sidePdfBtn').onclick = exportBracketPdf;
+document.getElementById('stripPdfBtn').onclick = exportBracketPdf;
+
+/* ================= boot ================= */
+function renderAll(){ renderTabs(); renderSeeds(); renderBracket(); setStatus(''); }
+renderAll();
+</script>
+</body>
+</html>
