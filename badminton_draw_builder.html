@@ -470,7 +470,7 @@ function updateSeedStatus(){
 }
 function updateByeStatus(){
   const byes = cur().customByes;
-  if(!byes.length){ setByeStatus('No custom BYE lines set. BYEs fill remaining open lines automatically.'); return; }
+  if(!byes.length){ setByeStatus('No custom BYE lines set. Entries fill open lines in paper order, then BYEs fill the rest.'); return; }
   const entryCount = cur().players.filter(Boolean).length;
   if(entryCount < 2){ setByeStatus(`${byes.length} custom BYE line${byes.length===1?'':'s'} set.`); return; }
   const drawSize = selectedDrawSize(entryCount);
@@ -533,12 +533,6 @@ function selectedDrawSize(entryCount){
 function firstOpenSlot(round){
   return round.findIndex(cell=>!cell);
 }
-function firstOpenSlotInEmptyMatch(round){
-  for(let i=0;i<round.length;i+=2){
-    if(!round[i] && !round[i+1]) return i;
-  }
-  return -1;
-}
 function byeCell(){
   return {name:'BYE', entryNo:null, seed:null, bye:true};
 }
@@ -558,7 +552,7 @@ function applyCustomByes(round, size, byeCount){
 }
 function showByeBuildStatus(result, drawSize, byeCount){
   if(!cur().customByes.length){
-    setByeStatus(byeCount ? `${byeCount} BYE${byeCount===1?'':'s'} auto-filled.` : 'No BYEs needed.');
+    setByeStatus(byeCount ? `${byeCount} BYE${byeCount===1?'':'s'} filled after entries in paper order.` : 'No BYEs needed.');
     return;
   }
   if(!byeCount){
@@ -617,8 +611,7 @@ function buildBracket(){
   let nextOpen = 0;
   entries.forEach(entry=>{
     if(usedEntries.has(entry.entryNo)) return;
-    const emptyMatchSlot = firstOpenSlotInEmptyMatch(rounds[0]);
-    nextOpen = emptyMatchSlot >= 0 ? emptyMatchSlot : firstOpenSlot(rounds[0]);
+    nextOpen = firstOpenSlot(rounds[0]);
     if(nextOpen >= 0) rounds[0][nextOpen] = {...entry};
   });
   for(let slot=0;slot<size;slot++){
