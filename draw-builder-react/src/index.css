@@ -110,6 +110,8 @@ select:focus{outline:none;border-color:var(--court-soft)}
 .stage-top h2{font-size:20px;font-weight:800}
 .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--ink-2)}
 .chip b{color:var(--ink)}
+.chip.chip-warn{background:var(--cork-soft);border-color:var(--cork);color:#7E3417}
+.chip.chip-warn b{color:#7E3417}
 .stage-actions{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .zoom{display:flex;gap:6px;align-items:center}
 .export-note{font-size:12.5px;color:var(--ink-2);white-space:nowrap}

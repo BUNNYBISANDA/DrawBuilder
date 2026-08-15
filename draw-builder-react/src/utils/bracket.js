@@ -1,4 +1,4 @@
-import { normalizeName } from './names';
+import { normalizeName, parseSeedEntry } from './names';
 
 export function seedOrder(n) {
   let order = [1];
@@ -103,13 +103,42 @@ export function buildBracket(event) {
   });
 
   const usedEntries = new Set();
-  event.seeds.forEach((seedName, seedIndex) => {
-    const entry = entryByName.get(normalizeName(seedName));
-    const line = seedLines[seedIndex];
-    if (!entry || !line || usedEntries.has(entry.entryNo)) return;
+  const usedLines = new Set();
+  const parsedSeeds = event.seeds.map(parseSeedEntry);
+
+  // Pass 1: seeds pinned to a known line (e.g. the actual result of a
+  // tournament's lot draw for seeds beyond #1/#2) go exactly where told.
+  const pinResult = { invalid: [], taken: [] };
+  parsedSeeds.forEach((seedEntry, seedIndex) => {
+    if (!seedEntry.line) return;
+    const entry = entryByName.get(normalizeName(seedEntry.name));
+    if (!entry || usedEntries.has(entry.entryNo)) return;
+    if (seedEntry.line < 1 || seedEntry.line > size) { pinResult.invalid.push(seedEntry.name); return; }
+    const slot = seedEntry.line - 1;
+    if (rounds[0][slot]) { pinResult.taken.push(seedEntry.name); return; }
+    entry.seed = seedIndex + 1;
+    rounds[0][slot] = { ...entry };
+    usedEntries.add(entry.entryNo);
+    usedLines.add(seedEntry.line);
+  });
+
+  // Pass 2: remaining seeds (no pinned line) auto-place by rank, walking
+  // the standard seed template and skipping any line already spoken for.
+  let templatePos = 0;
+  parsedSeeds.forEach((seedEntry, seedIndex) => {
+    if (seedEntry.line) return;
+    const entry = entryByName.get(normalizeName(seedEntry.name));
+    if (!entry || usedEntries.has(entry.entryNo)) return;
+    let line = null;
+    while (templatePos < seedLines.length) {
+      const candidate = seedLines[templatePos++];
+      if (!usedLines.has(candidate) && !rounds[0][candidate - 1]) { line = candidate; break; }
+    }
+    if (!line) return;
     entry.seed = seedIndex + 1;
     rounds[0][line - 1] = { ...entry };
     usedEntries.add(entry.entryNo);
+    usedLines.add(line);
   });
 
   const byeResult = applyCustomByes(rounds[0], size, size - players.length, event.customByes);
@@ -124,7 +153,7 @@ export function buildBracket(event) {
 
   const bracket = { size, rounds, entrants: players.length, matches: buildMatches(size) };
   autoAdvanceByes(bracket);
-  return { bracket, byeResult };
+  return { bracket, byeResult, pinResult };
 }
 
 export function flattenMatches(bracket) {

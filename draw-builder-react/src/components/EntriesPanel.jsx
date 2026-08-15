@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { normalizeName, parseSeedLines, parseLineNumbers } from '../utils/names';
+import { normalizeName, parseSeedLines, parseLineNumbers, parseSeedEntry, renameSeedByName } from '../utils/names';
 import { selectedDrawSize } from '../utils/bracket';
 
 export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExportPdf }) {
@@ -19,7 +19,7 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
     onUpdateEvent((ev) => {
       const nextPlayers = [...ev.players];
       nextPlayers[i] = nextName;
-      const nextSeeds = ev.seeds.map((s) => (normalizeName(s) === normalizeName(oldName) ? nextName : s));
+      const nextSeeds = renameSeedByName(ev.seeds, oldName, nextName);
       return { ...ev, players: nextPlayers, seeds: nextSeeds, bracket: null };
     });
   }
@@ -53,12 +53,17 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
   const seedStatus = useMemo(() => {
     const seeds = event.seeds;
     if (!seeds.length) return { msg: 'No seeded players set. All entries fill open lines in entry order.', cls: '' };
+    const parsed = seeds.map(parseSeedEntry);
     const entryNames = new Set(players.map(normalizeName));
-    const missing = seeds.filter((name) => !entryNames.has(normalizeName(name)));
+    const missing = parsed.filter((s) => !entryNames.has(normalizeName(s.name))).map((s) => s.name);
     if (missing.length) {
       return { msg: `${missing.length} seed${missing.length === 1 ? '' : 's'} not found in entries: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`, cls: 'err' };
     }
-    return { msg: `${seeds.length} seeded player${seeds.length === 1 ? '' : 's'} set.`, cls: '' };
+    const pinned = parsed.filter((s) => s.line).length;
+    return {
+      msg: `${seeds.length} seeded player${seeds.length === 1 ? '' : 's'} set` + (pinned ? ` (${pinned} pinned to a known line).` : '.'),
+      cls: '',
+    };
   }, [event.seeds, players]);
 
   const byeStatus = useMemo(() => {
@@ -103,7 +108,7 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
 
         <div className="seedbox" style={{ marginTop: 12 }}>
           <h2><span className="n">3</span> Seeded players <span style={{ fontWeight: 400, fontSize: '12.5px', color: 'var(--ink-2)' }}>- top players, kept apart in the draw</span></h2>
-          <p className="hintline">Optional. List only the seeded players here, strongest first — one per line. Line 1 is seed 1, line 2 is seed 2, and so on.</p>
+          <p className="hintline">Optional. List only the seeded players here, strongest first — one per line. Line 1 is seed 1, line 2 is seed 2, and so on. Seeds 1 and 2 always go to the top and bottom of the draw; beyond that, real seeding is usually decided by a lot draw at the seeding meeting — add <code>@ line</code> after a name (e.g. <code>Bihara Jayadevi (MC) @ 48</code>) to pin it to that known result instead of guessing.</p>
           <textarea
             value={seedFocused ? (seedDraft ?? event.seeds.join('\n')) : event.seeds.join('\n')}
             onFocus={() => { setSeedFocused(true); setSeedDraft(event.seeds.join('\n')); }}
@@ -112,7 +117,7 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
               onUpdateEvent((ev) => ({ ...ev, seeds: parseSeedLines(e.target.value), bracket: null }));
             }}
             onBlur={() => setSeedFocused(false)}
-            placeholder={'Bunny Jayathilaka\nSomchai P.\nArisa / Mook'}
+            placeholder={'Bunny Jayathilaka\nSomchai P. @ 64\nArisa / Mook'}
           />
           <div className="row" style={{ marginTop: 8 }}>
             <button className="btn small secondary" onClick={() => onUpdateEvent((ev) => ({ ...ev, seeds: [], bracket: null }))}>Clear seeds</button>
