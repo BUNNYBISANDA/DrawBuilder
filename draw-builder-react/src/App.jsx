@@ -5,7 +5,7 @@ import ImportPanel from './components/ImportPanel';
 import EntriesPanel from './components/EntriesPanel';
 import BracketView from './components/BracketView';
 import SchedulerView from './components/SchedulerView';
-import { normalizeName } from './utils/names';
+import { normalizeName, updateSeedName } from './utils/names';
 import { buildBracket, samePlayer, clearDownstream, propagateRename, ensureMatches, emptyMatch } from './utils/bracket';
 import { exportBracketPdf } from './utils/pdfExport';
 import { loadState, saveState } from './utils/storage';
@@ -93,6 +93,15 @@ export default function App() {
     setMoveByes(false);
     setSwapSlot(null);
 
+    const p = result.pinResult;
+    if (p.invalid.length || p.taken.length) {
+      const parts = [];
+      if (p.invalid.length) parts.push(`pinned line out of range for ${p.invalid.slice(0, 3).join(', ')}`);
+      if (p.taken.length) parts.push(`pinned line already taken for ${p.taken.slice(0, 3).join(', ')}`);
+      setGenStatus({ msg: `Some seed lines couldn't be placed as pinned — ${parts.join('; ')}.`, cls: 'err' });
+      return;
+    }
+
     const byeCount = result.bracket.size - result.bracket.entrants;
     const r = result.byeResult;
     if (!event.customByes.length) {
@@ -178,7 +187,7 @@ export default function App() {
       propagateRename(nextBracket, cell.entryNo, v);
       const players = [...ev.players];
       players[cell.entryNo - 1] = v;
-      const seeds = cell.seed ? ev.seeds.map((s, idx) => (idx === cell.seed - 1 ? v : s)) : ev.seeds;
+      const seeds = cell.seed ? updateSeedName(ev.seeds, cell.seed - 1, v) : ev.seeds;
       return { ...ev, players, seeds, bracket: nextBracket };
     });
   }
