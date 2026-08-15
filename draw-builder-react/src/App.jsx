@@ -1,21 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import EventTabs from './components/EventTabs';
+import EventModal from './components/EventModal';
 import ImportPanel from './components/ImportPanel';
 import EntriesPanel from './components/EntriesPanel';
 import BracketView from './components/BracketView';
+import SchedulerView from './components/SchedulerView';
 import { normalizeName } from './utils/names';
-import { buildBracket, samePlayer, clearDownstream, propagateRename } from './utils/bracket';
+import { buildBracket, samePlayer, clearDownstream, propagateRename, ensureMatches, emptyMatch } from './utils/bracket';
 import { exportBracketPdf } from './utils/pdfExport';
 import { loadState, saveState } from './utils/storage';
 
 const DEFAULT_EVENTS = [
-  { name: 'Singles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
-  { name: 'Doubles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
+  { name: 'Singles', category: '', gender: '', type: 'Singles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
+  { name: 'Doubles', category: '', gender: '', type: 'Doubles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
 ];
 
 function ensureEventShape(ev) {
   return {
     name: ev.name || 'Event',
+    nameOverride: ev.nameOverride || '',
+    category: ev.category || '',
+    gender: ev.gender || '',
+    type: ev.type || 'Singles',
     players: Array.isArray(ev.players) ? ev.players : [],
     seeds: Array.isArray(ev.seeds) ? ev.seeds : [],
     drawSize: ev.drawSize || 'auto',
@@ -34,6 +40,8 @@ export default function App() {
   const [genStatus, setGenStatus] = useState({ msg: '', cls: '' });
   const [exportNote, setExportNote] = useState('32 slots per page');
   const [exportCls, setExportCls] = useState('');
+  const [view, setView] = useState('bracket');
+  const [eventModal, setEventModal] = useState(null); // null | 'add' | eventIndex (number) for edit
   const canvasRef = useRef(null);
 
   const event = ensureEventShape(events[active] || DEFAULT_EVENTS[0]);
@@ -136,6 +144,7 @@ export default function App() {
     }
     updateEvent((ev) => {
       const next = structuredClone(ev.bracket);
+      next.matches = ensureMatches(next);
       [next.rounds[0][swapSlot], next.rounds[0][i]] = [next.rounds[0][i], next.rounds[0][swapSlot]];
       for (let r = 1; r < next.rounds.length; r++) next.rounds[r].fill(null);
       for (let m = 0; m < next.size / 2; m++) {
@@ -143,9 +152,22 @@ export default function App() {
         if (a && b && a.bye && !b.bye) next.rounds[1][m] = { ...b };
         if (a && b && b.bye && !a.bye) next.rounds[1][m] = { ...a };
       }
+      // The two round-1 matches involved just changed players — their
+      // recorded score/court/time no longer refers to the same pairing.
+      next.matches[0][swapSlot >> 1] = emptyMatch();
+      next.matches[0][i >> 1] = emptyMatch();
       return { ...ev, bracket: next };
     });
     setSwapSlot(null);
+  }
+
+  function updateMatch(r, m, patch) {
+    updateEvent((ev) => {
+      const next = structuredClone(ev.bracket);
+      next.matches = ensureMatches(next);
+      next.matches[r][m] = { ...next.matches[r][m], ...patch };
+      return { ...ev, bracket: next };
+    });
   }
 
   function renameCell(cell, text) {
@@ -190,14 +212,31 @@ export default function App() {
         <EventTabs
           events={events}
           active={active}
-          onSelect={(i) => { setActive(i); setSwapSlot(null); setMoveByes(false); }}
-          onRename={(i, name) => setEvents((prev) => { const next = [...prev]; next[i] = { ...ensureEventShape(next[i]), name }; return next; })}
-          onAdd={(name) => {
-            setEvents((prev) => [...prev, { name, players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null }]);
-            setActive(events.length);
-          }}
+          onSelect={(i) => { setActive(i); setSwapSlot(null); setMoveByes(false); setView('bracket'); }}
+          onEdit={(i) => setEventModal(i)}
+          onAddClick={() => setEventModal('add')}
         />
       </header>
+
+      {eventModal !== null && (
+        <EventModal
+          initial={eventModal === 'add' ? null : ensureEventShape(events[eventModal])}
+          onClose={() => setEventModal(null)}
+          onSave={(meta) => {
+            if (eventModal === 'add') {
+              setEvents((prev) => [...prev, { ...meta, players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null }]);
+              setActive(events.length);
+            } else {
+              setEvents((prev) => {
+                const next = [...prev];
+                next[eventModal] = { ...ensureEventShape(next[eventModal]), ...meta };
+                return next;
+              });
+            }
+            setEventModal(null);
+          }}
+        />
+      )}
 
       <main>
         <aside>
@@ -221,19 +260,29 @@ export default function App() {
               </>
             ) : null}
             <div className="stage-actions">
-              <div className="zoom">
-                <button className="btn small secondary" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}>-</button>
-                <span className="chip"><b>{Math.round(zoom * 100)}%</b></span>
-                <button className="btn small secondary" onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}>+</button>
-              </div>
-              <button
-                className={'btn small secondary toggle' + (moveByes && event.bracket ? ' active' : '')}
-                disabled={!event.bracket}
-                title="Click two round-1 slots to swap players and BYEs."
-                onClick={() => { setMoveByes((v) => !v); setSwapSlot(null); }}
-              >
-                {moveByes && event.bracket ? (swapSlot === null ? 'Move BYEs: pick slot' : 'Move BYEs: pick target') : 'Move BYEs'}
-              </button>
+              {event.bracket && (
+                <div className="view-toggle">
+                  <button className={'btn small secondary' + (view === 'bracket' ? ' active' : '')} onClick={() => setView('bracket')}>Bracket</button>
+                  <button className={'btn small secondary' + (view === 'scheduler' ? ' active' : '')} onClick={() => setView('scheduler')}>Scheduler</button>
+                </div>
+              )}
+              {view === 'bracket' && (
+                <div className="zoom">
+                  <button className="btn small secondary" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}>-</button>
+                  <span className="chip"><b>{Math.round(zoom * 100)}%</b></span>
+                  <button className="btn small secondary" onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}>+</button>
+                </div>
+              )}
+              {view === 'bracket' && (
+                <button
+                  className={'btn small secondary toggle' + (moveByes && event.bracket ? ' active' : '')}
+                  disabled={!event.bracket}
+                  title="Click two round-1 slots to swap players and BYEs."
+                  onClick={() => { setMoveByes((v) => !v); setSwapSlot(null); }}
+                >
+                  {moveByes && event.bracket ? (swapSlot === null ? 'Move BYEs: pick slot' : 'Move BYEs: pick target') : 'Move BYEs'}
+                </button>
+              )}
               <button className="btn small export" title="Downloads a bracket-only PDF. Each page contains up to 32 bracket slots." onClick={doExportPdf}>Export PDF</button>
               <span className={'export-note ' + exportCls}>{exportNote}</span>
             </div>
@@ -244,13 +293,20 @@ export default function App() {
             <span className={'export-note ' + exportCls}>{exportNote}</span>
           </div>
 
-          <p className="hint">Choose draw size and custom BYE lines on the left. After generating, Move BYEs can still swap two round-1 slots if you need a quick adjustment.</p>
+          {view === 'bracket' && (
+            <p className="hint">Choose draw size and custom BYE lines on the left. After generating, Move BYEs can still swap two round-1 slots if you need a quick adjustment.</p>
+          )}
+          {view === 'scheduler' && (
+            <p className="hint">Assign a court, a scheduled time, and record set scores for every real match. BYE lines have nothing to schedule.</p>
+          )}
 
           {!event.bracket ? (
             <div className="empty">
               <h3>No draw yet</h3>
               <p>Import entries, choose draw size, optionally type custom BYE line numbers, then press <b>Generate bracket</b>.<br />Example: 16 entries can be generated as a 32 draw with BYEs on the lines you choose.</p>
             </div>
+          ) : view === 'scheduler' ? (
+            <SchedulerView bracket={event.bracket} onUpdateMatch={updateMatch} />
           ) : (
             <>
               <BracketView

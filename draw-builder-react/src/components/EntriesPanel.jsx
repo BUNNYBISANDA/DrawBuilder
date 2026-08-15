@@ -79,12 +79,12 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
   return (
     <>
       <section className="panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <h2><span className="n">2</span> Entries <span style={{ fontWeight: 400, fontSize: '12.5px', color: 'var(--ink-2)' }}>- normal entry numbers</span></h2>
+        <h2><span className="n">2</span> Entries <span style={{ fontWeight: 400, fontSize: '12.5px', color: 'var(--ink-2)' }}>- fills the draw in this order</span></h2>
         <div className="seedwrap">
           <div className="seedhead">
             <span>{players.length} entries</span>
             <span className="row" style={{ gap: 6 }}>
-              <button className="btn small secondary" title="Randomize the normal entry order" onClick={shuffle}>Shuffle</button>
+              <button className="btn small secondary" title="Randomize the entry order" onClick={shuffle}>Shuffle</button>
               <button className="btn small secondary" onClick={addOne}>+ Add</button>
             </span>
           </div>
@@ -102,8 +102,8 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
         </div>
 
         <div className="seedbox" style={{ marginTop: 12 }}>
-          <h2><span className="n">3</span> Seeded players <span style={{ fontWeight: 400, fontSize: '12.5px', color: 'var(--ink-2)' }}>- seed order only</span></h2>
-          <p className="hintline">Type only seeded players here, one per line. Line 1 is seed (1), line 2 is seed (2), etc.</p>
+          <h2><span className="n">3</span> Seeded players <span style={{ fontWeight: 400, fontSize: '12.5px', color: 'var(--ink-2)' }}>- top players, kept apart in the draw</span></h2>
+          <p className="hintline">Optional. List only the seeded players here, strongest first — one per line. Line 1 is seed 1, line 2 is seed 2, and so on.</p>
           <textarea
             value={seedFocused ? (seedDraft ?? event.seeds.join('\n')) : event.seeds.join('\n')}
             onFocus={() => { setSeedFocused(true); setSeedDraft(event.seeds.join('\n')); }}

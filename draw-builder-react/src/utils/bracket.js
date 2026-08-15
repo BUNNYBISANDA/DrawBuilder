@@ -54,6 +54,26 @@ function applyCustomByes(round, size, byeCount, customByes) {
   return result;
 }
 
+export const MATCH_STATUSES = ['scheduled', 'in-progress', 'completed', 'walkover', 'retired'];
+
+export function emptyMatch() {
+  return { sets: [], court: '', scheduledTime: '', status: 'scheduled' };
+}
+
+function buildMatches(size) {
+  const roundsCount = Math.log2(size) + 1;
+  const matches = [];
+  for (let r = 0; r < roundsCount - 1; r++) {
+    matches.push(new Array(size >> (r + 1)).fill(null).map(() => emptyMatch()));
+  }
+  return matches;
+}
+
+export function ensureMatches(bracket) {
+  if (bracket.matches) return bracket.matches;
+  return buildMatches(bracket.size);
+}
+
 export function autoAdvanceByes(br) {
   for (let r = 1; r < br.rounds.length; r++) br.rounds[r].fill(null);
   for (let m = 0; m < br.size / 2; m++) {
@@ -102,9 +122,26 @@ export function buildBracket(event) {
     if (!rounds[0][slot]) rounds[0][slot] = byeCell();
   }
 
-  const bracket = { size, rounds, entrants: players.length };
+  const bracket = { size, rounds, entrants: players.length, matches: buildMatches(size) };
   autoAdvanceByes(bracket);
   return { bracket, byeResult };
+}
+
+export function flattenMatches(bracket) {
+  const list = [];
+  const R = bracket.rounds.length;
+  for (let r = 0; r < R - 1; r++) {
+    const teams = bracket.size >> r;
+    const roundLabel = teams === 2 ? 'Final' : teams === 4 ? 'Semifinals' : teams === 8 ? 'Quarterfinals' : 'Round of ' + teams;
+    const round = bracket.rounds[r];
+    for (let m = 0; m < round.length / 2; m++) {
+      const a = round[2 * m];
+      const b = round[2 * m + 1];
+      const match = (bracket.matches && bracket.matches[r] && bracket.matches[r][m]) || emptyMatch();
+      list.push({ r, m, roundLabel, a, b, match, isBye: !a || !b || a.bye || b.bye });
+    }
+  }
+  return list;
 }
 
 export function samePlayer(a, b) {

@@ -38,38 +38,9 @@ export default function ImportPanel({ onAddNames, onClearAll }) {
     r.readAsArrayBuffer(f);
   }
 
-  async function handleImage(f) {
-    setStat('Reading names from the photo with AI…', 'busy');
-    try {
-      const b64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result.split(',')[1]);
-        r.onerror = () => rej(new Error('read failed'));
-        r.readAsDataURL(f);
-      });
-      const mt = f.type || 'image/png';
-      // NOTE: this calls Anthropic's API directly from the browser, which
-      // needs a server-side proxy holding the API key — it cannot work
-      // as a bare client-side fetch. See project notes for a proxy setup.
-      const resp = await fetch('/api/extract-names', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: b64, mediaType: mt }),
-      });
-      if (!resp.ok) throw new Error('extract endpoint unavailable');
-      const arr = await resp.json();
-      if (!Array.isArray(arr) || !arr.length) throw new Error('no names found');
-      const added = onAddNames(arr.map(String));
-      setStat(`Read ${arr.length} names from the photo` + (added < arr.length ? ` (${arr.length - added} duplicates skipped)` : ''));
-    } catch (err) {
-      setStat('Could not extract names from the image (needs a backend proxy). Try a clearer photo, or paste the names instead.', 'err');
-    }
-  }
-
   function handleFile(f) {
-    if (f.type.startsWith('image/')) return handleImage(f);
     if (/\.(xlsx|xls|csv)$/i.test(f.name)) return handleSheet(f);
-    setStat('Unsupported file — use .xlsx, .csv, or an image.', 'err');
+    setStat('Unsupported file — use .xlsx or .csv.', 'err');
   }
 
   function loadPaste() {
@@ -96,11 +67,11 @@ export default function ImportPanel({ onAddNames, onClearAll }) {
           if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
         }}
       >
-        <p><strong>Drop an Excel / CSV file or a photo of the entry list</strong><br />or click to browse. Names are read automatically.</p>
+        <p><strong>Drop an Excel or CSV file</strong><br />or click to browse. Names are read from every sheet automatically.</p>
         <input
           ref={fileRef}
           type="file"
-          accept=".xlsx,.xls,.csv,image/*"
+          accept=".xlsx,.xls,.csv"
           onChange={() => {
             if (fileRef.current.files[0]) handleFile(fileRef.current.files[0]);
             fileRef.current.value = '';
