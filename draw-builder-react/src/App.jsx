@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import EventTabs from './components/EventTabs';
 import EventModal from './components/EventModal';
 import ShareBar from './components/ShareBar';
+import slsbaLogo from './assets/slsba-logo.jpg';
 import ImportPanel from './components/ImportPanel';
 import EntriesPanel from './components/EntriesPanel';
 import BracketView from './components/BracketView';
@@ -264,13 +265,10 @@ export default function App() {
   return (
     <>
       <header>
-        <svg className="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-          <circle cx="11" cy="29" r="5.5" fill="#D2622A" />
-          <path d="M15 25 33 7M20 30l11-11M15 25l3 3" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
+        <img className="mark" src={slsbaLogo} alt="SLSBA crest" />
         <div>
-          <h1>Badminton draw builder</h1>
-          <div className="sub">Upload a list, generate the knockout draw, edit everything.</div>
+          <h1>SLSBA Draw Builder</h1>
+          <div className="sub">Sri Lanka Schools' Badminton Association — tournament draws &amp; scoring</div>
         </div>
         <div className="spacer" />
         <ShareBar status={syncStatus} />
