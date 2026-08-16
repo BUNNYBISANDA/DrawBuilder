@@ -18,6 +18,15 @@ header .mark{width:34px;height:34px;flex:none}
 header h1{font-size:21px;font-weight:800;letter-spacing:.3px}
 header .sub{font-size:12.5px;color:#BFD6C8;margin-top:1px}
 header .spacer{flex:1}
+.share-bar{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#BFD6C8}
+.share-bar .btn.small.secondary{background:transparent;border-color:#3E7458;color:#DCEBE1}
+.share-bar .btn.small.secondary:hover{border-color:#DCEBE1}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#8FB39D;flex:none}
+.sync-dot.sync-synced{background:#6FCF97}
+.sync-dot.sync-connecting{background:#E8C468;animation:pulse 1.2s ease-in-out infinite}
+.sync-dot.sync-error{background:#E0685B}
+.sync-dot.sync-local{background:#8FB39D}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .evt-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .evt-tab{background:transparent;border:1.5px solid #3E7458;color:#DCEBE1;padding:6px 14px;border-radius:999px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
 .evt-tab.active{background:#fff;color:var(--court);border-color:#fff}
