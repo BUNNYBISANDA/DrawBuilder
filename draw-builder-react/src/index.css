@@ -28,9 +28,18 @@ header .spacer{flex:1}
 .sync-dot.sync-error{background:#C0392B}
 .sync-dot.sync-local{background:#C9B79C}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.evt-picker{display:flex;align-items:center;gap:6px}
-.evt-select{background:#fff;color:var(--court);border:1.5px solid #fff;border-radius:999px;padding:7px 14px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;max-width:260px}
-.evt-select:focus{outline:2px solid var(--cork);outline-offset:1px}
+.evt-picker{position:relative;display:flex;align-items:center;gap:6px}
+.evt-select-btn{display:flex;align-items:center;gap:8px;background:#fff;color:var(--court);border:1.5px solid #fff;border-radius:999px;padding:7px 8px 7px 14px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;max-width:260px}
+.evt-select-btn:hover,.evt-select-btn.open{border-color:var(--cork)}
+.evt-select-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evt-select-caret{flex:none;font-size:11px;color:var(--ink-3);transition:transform .12s}
+.evt-select-btn.open .evt-select-caret{transform:rotate(180deg)}
+.evt-dropdown{position:absolute;top:calc(100% + 6px);right:0;z-index:50;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:6px;min-width:220px;max-width:320px;max-height:min(60vh,420px);overflow:auto}
+.evt-dropdown-group + .evt-dropdown-group{margin-top:4px;padding-top:4px;border-top:1px solid var(--line)}
+.evt-dropdown-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-3);padding:6px 8px 2px}
+.evt-dropdown-item{display:block;width:100%;text-align:left;background:none;border:none;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13.5px;color:var(--ink);cursor:pointer}
+.evt-dropdown-item:hover{background:var(--hall)}
+.evt-dropdown-item.active{background:var(--cork-soft);color:#6E4A12;font-weight:600}
 .evt-edit{background:transparent;border-color:#A8654A;color:#F1E4C9;padding:6px 11px;line-height:1}
 .evt-edit:hover{border-color:#F1E4C9}
 
@@ -174,7 +183,8 @@ select:focus{outline:none;border-color:var(--court-soft)}
   header h1{font-size:18px}
   header .sub{font-size:11.5px}
   .evt-picker{width:100%}
-  .evt-select{flex:1;min-width:0;max-width:none}
+  .evt-select-btn{flex:1;min-width:0;max-width:none}
+  .evt-dropdown{left:0;right:0;min-width:0;max-width:none}
 
   aside{padding:14px;gap:12px}
   .stage{padding:12px 14px}
@@ -189,7 +199,8 @@ select:focus{outline:none;border-color:var(--court-soft)}
   /* Comfortable tap targets over the compact desktop sizing */
   .seed-row .mv,.seed-row .del{font-size:17px;padding:6px 8px}
   .btn.small{padding:8px 12px;font-size:13px}
-  .evt-select{padding:8px 13px}
+  .evt-select-btn{padding:8px 8px 8px 13px}
+  .evt-dropdown-item{padding:10px 10px}
 
   .modal{padding:16px;border-radius:12px}
 
