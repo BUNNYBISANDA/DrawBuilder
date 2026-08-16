@@ -1,6 +1,8 @@
+// Seed for a brand-new tournament — a single blank event to rename/configure
+// via "+ Event" or double-click, rather than forcing unused Singles/Doubles
+// placeholders on organizers who name events by category (e.g. "U15 Boys Singles").
 export const DEFAULT_EVENTS = [
-  { name: 'Singles', category: '', gender: '', type: 'Singles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
-  { name: 'Doubles', category: '', gender: '', type: 'Doubles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
+  { name: 'Event 1', category: '', gender: '', type: 'Singles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
 ];
 
 export function ensureEventShape(ev) {
