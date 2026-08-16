@@ -41,7 +41,7 @@ header .spacer{flex:1}
 .view-toggle .btn{border:none;background:transparent;color:var(--ink-2)}
 .view-toggle .btn.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .scheduler{overflow:auto}
-.sched-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+.sched-table{width:100%;min-width:760px;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
 .sched-table th{text-align:left;background:#F7F9F5;padding:8px 10px;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-2);border-bottom:1px solid var(--line)}
 .sched-table td{padding:7px 10px;border-bottom:1px solid #EEF1EC;vertical-align:middle}
 .sched-table tr:last-child td{border-bottom:none}
@@ -76,6 +76,9 @@ select:focus{outline:none;border-color:var(--court-soft)}
 .btn{font-family:inherit;font-size:14px;font-weight:600;border-radius:10px;padding:9px 14px;cursor:pointer;border:1.5px solid var(--tape);background:var(--tape);color:#fff}
 .btn.secondary{background:#fff;color:var(--ink);border-color:var(--line)}
 .btn.secondary:hover{border-color:var(--ink-2)}
+.btn.secondary.danger{color:#A32D2D;border-color:#EBC7C7}
+.btn.secondary.danger:hover{background:#FBEFEF;border-color:#A32D2D}
+.btn.secondary.danger:disabled{color:var(--ink-3);border-color:var(--line)}
 .btn:disabled{opacity:.5;cursor:default}
 .btn.small{padding:5px 10px;font-size:12.5px;border-radius:8px}
 .btn.toggle.active{background:var(--cork-soft);border-color:var(--cork);color:#7E3417}
@@ -144,8 +147,39 @@ select:focus{outline:none;border-color:var(--court-soft)}
 .slot.bye .nm{color:var(--ink-3);font-style:italic;cursor:default}
 .slot.champ{border-color:var(--cork);border-width:2.5px;background:var(--cork-soft)}
 .slot.champ .nm{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px}
+.slot-clear{flex:none;align-self:stretch;width:22px;border:none;border-left:1px solid var(--line);background:#FBF7F3;color:var(--ink-3);font-size:15px;line-height:1;cursor:pointer}
+.slot-clear:hover{background:#F6DCDC;color:#A32D2D}
 .slot.swapable{cursor:pointer}
 .slot.swapable:hover{box-shadow:0 0 0 2px var(--cork-soft)}
 .slot.swap-selected{outline:3px solid var(--cork);outline-offset:2px;z-index:5}
 .wire{position:absolute;background:var(--tape)}
 .footer-note{font-size:12px;color:var(--ink-3);margin-top:10px}
+
+/* ---------- mobile ---------- */
+@media(max-width:640px){
+  header{padding:12px 14px;gap:10px}
+  header h1{font-size:18px}
+  header .sub{font-size:11.5px}
+  header .mark{width:28px;height:28px}
+  .evt-tabs{width:100%}
+
+  aside{padding:14px;gap:12px}
+  .stage{padding:12px 14px}
+  .stage-top h2{font-size:17px}
+  .stage-actions{width:100%;margin-left:0}
+  .view-toggle{flex:1}
+  .view-toggle .btn{flex:1;padding:8px 6px}
+  .zoom{flex:none}
+
+  #viewport{padding:14px 10px}
+
+  /* Comfortable tap targets over the compact desktop sizing */
+  .seed-row .mv,.seed-row .del{font-size:17px;padding:6px 8px}
+  .btn.small{padding:8px 12px;font-size:13px}
+  .evt-tab{padding:7px 13px}
+
+  .modal{padding:16px;border-radius:12px}
+
+  .sched-table{min-width:640px;font-size:12.5px}
+  .set-pair input{width:30px}
+}

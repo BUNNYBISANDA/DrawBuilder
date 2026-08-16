@@ -4,7 +4,7 @@ import { displayPlayerName } from '../utils/bracket';
 
 export default function BracketView({
   bracket, moveByes, swapSlot, zoom,
-  onAdvance, onSwapClick, onRenameCell, canvasRef,
+  onAdvance, onSwapClick, onRenameCell, onClearAdvance, canvasRef,
 }) {
   const scalerRef = useRef(null);
 
@@ -100,6 +100,16 @@ export default function BracketView({
                   {cell ? cell.name : ''}
                 </span>
                 {cell && cell.seed ? <span className="seedmark">{`(${cell.seed})`}</span> : null}
+                {r > 0 && cell && !cell.bye ? (
+                  <button
+                    type="button"
+                    className="slot-clear"
+                    title={`Remove ${displayPlayerName(cell)} from this round`}
+                    onClick={(e) => { e.stopPropagation(); onClearAdvance(r, i); }}
+                  >
+                    ×
+                  </button>
+                ) : null}
               </div>
             );
           }))}
