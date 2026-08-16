@@ -33,7 +33,20 @@ function SetScoreInputs({ sets, onChange }) {
   );
 }
 
-export default function SchedulerView({ bracket, onUpdateMatch }) {
+function formatScheduledTime(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function formatSets(sets) {
+  const played = (sets || []).filter((s) => s && (s[0] !== '' || s[1] !== ''));
+  if (!played.length) return '—';
+  return played.map(([a, b]) => `${a || 0}-${b || 0}`).join(', ');
+}
+
+export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false }) {
   const matches = flattenMatches(bracket);
 
   return (
@@ -46,7 +59,7 @@ export default function SchedulerView({ bracket, onUpdateMatch }) {
             <th>Court</th>
             <th>Scheduled time</th>
             <th>Status</th>
-            <th>Score (best of 3)</th>
+            <th>Score{readOnly ? '' : ' (best of 3)'}</th>
           </tr>
         </thead>
         <tbody>
@@ -60,6 +73,13 @@ export default function SchedulerView({ bracket, onUpdateMatch }) {
               </td>
               {isBye ? (
                 <td colSpan={4} className="tbd">— BYE, no match to schedule —</td>
+              ) : readOnly ? (
+                <>
+                  <td>{match.court || '—'}</td>
+                  <td>{formatScheduledTime(match.scheduledTime)}</td>
+                  <td>{STATUS_LABEL[match.status] || match.status}</td>
+                  <td>{formatSets(match.sets)}</td>
+                </>
               ) : (
                 <>
                   <td>

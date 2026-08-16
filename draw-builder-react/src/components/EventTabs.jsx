@@ -1,6 +1,6 @@
 import { categorySortKey } from '../utils/eventMeta';
 
-export default function EventTabs({ events, active, onSelect, onEdit, onAddClick }) {
+export default function EventTabs({ events, active, onSelect, onEdit, onAddClick, readOnly = false }) {
   const useCategories = events.some((e) => e.category);
   const indexed = events.map((ev, i) => ({ ev, i }));
   // Only regroup by category once categories are actually in use — a stable
@@ -30,15 +30,15 @@ export default function EventTabs({ events, active, onSelect, onEdit, onAddClick
               key={i}
               className={'evt-tab' + (i === active ? ' active' : '')}
               onClick={() => onSelect(i)}
-              onDoubleClick={() => onEdit(i)}
-              title="Double-click to edit category / gender / type"
+              onDoubleClick={readOnly ? undefined : () => onEdit(i)}
+              title={readOnly ? undefined : 'Double-click to edit category / gender / type'}
             >
               {ev.name}
             </button>
           ))}
         </span>
       ))}
-      <button className="evt-tab add" onClick={onAddClick}>+ Event</button>
+      {!readOnly && <button className="evt-tab add" onClick={onAddClick}>+ Event</button>}
     </nav>
   );
 }

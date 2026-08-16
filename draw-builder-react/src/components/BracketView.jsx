@@ -5,6 +5,7 @@ import { displayPlayerName } from '../utils/bracket';
 export default function BracketView({
   bracket, moveByes, swapSlot, zoom,
   onAdvance, onSwapClick, onRenameCell, onClearAdvance, canvasRef,
+  readOnly = false,
 }) {
   const scalerRef = useRef(null);
 
@@ -60,7 +61,7 @@ export default function BracketView({
           {bracket.rounds.map((round, r) => round.map((cell, i) => {
             const x = r * (BOX_W + COL_GAP);
             const y = centerY(r, i);
-            const swapable = moveByes && r === 0 && !!cell;
+            const swapable = !readOnly && moveByes && r === 0 && !!cell;
             const selected = swapable && swapSlot === i;
             const isChamp = r === R - 1 && cell;
             const cls = 'slot'
@@ -68,15 +69,15 @@ export default function BracketView({
               + (isChamp ? ' champ winner' : '')
               + (swapable ? ' swapable' : '')
               + (selected ? ' swap-selected' : '');
-            const editable = r === 0 && cell && !cell.bye && !moveByes;
+            const editable = !readOnly && r === 0 && cell && !cell.bye && !moveByes;
             return (
               <div
                 key={`s-${r}-${i}`}
                 className={cls}
                 style={{ left: x, top: y, width: BOX_W, height: BOX_H }}
-                title={swapable ? (selected ? 'Selected - click another round-1 slot to swap' : 'Click to select this round-1 slot for swapping')
+                title={readOnly ? undefined : swapable ? (selected ? 'Selected - click another round-1 slot to swap' : 'Click to select this round-1 slot for swapping')
                   : (cell && !cell.bye && r < R - 1 ? 'Click to advance ' + displayPlayerName(cell) : undefined)}
-                onClick={(e) => {
+                onClick={readOnly ? undefined : (e) => {
                   if (swapable) { onSwapClick(i); return; }
                   if (cell && !cell.bye && r < R - 1) {
                     if (editable && e.target.classList.contains('nm')) return;
@@ -100,7 +101,7 @@ export default function BracketView({
                   {cell ? cell.name : ''}
                 </span>
                 {cell && cell.seed ? <span className="seedmark">{`(${cell.seed})`}</span> : null}
-                {r > 0 && cell && !cell.bye ? (
+                {!readOnly && r > 0 && cell && !cell.bye ? (
                   <button
                     type="button"
                     className="slot-clear"
