@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import EventTabs from './components/EventTabs';
 import EventModal from './components/EventModal';
+import ShareBar from './components/ShareBar';
 import ImportPanel from './components/ImportPanel';
 import EntriesPanel from './components/EntriesPanel';
 import BracketView from './components/BracketView';
@@ -9,6 +10,11 @@ import { normalizeName, updateSeedName } from './utils/names';
 import { buildBracket, samePlayer, clearDownstream, propagateRename, ensureMatches, emptyMatch } from './utils/bracket';
 import { exportBracketPdf } from './utils/pdfExport';
 import { loadState, saveState } from './utils/storage';
+import { supabaseEnabled } from './utils/supabase';
+import {
+  getTournamentIdFromUrl, setTournamentIdInUrl,
+  createTournament, loadTournament, saveTournament, subscribeTournament,
+} from './utils/tournamentSync';
 
 const DEFAULT_EVENTS = [
   { name: 'Singles', category: '', gender: '', type: 'Singles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
@@ -42,13 +48,68 @@ export default function App() {
   const [exportCls, setExportCls] = useState('');
   const [view, setView] = useState('bracket');
   const [eventModal, setEventModal] = useState(null); // null | 'add' | eventIndex (number) for edit
+  const [tournamentId, setTournamentId] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(supabaseEnabled ? 'connecting' : 'local'); // 'local' | 'connecting' | 'synced' | 'error'
   const canvasRef = useRef(null);
+  const skipNextSave = useRef(false);
+  const saveTimer = useRef(null);
 
   const event = ensureEventShape(events[active] || DEFAULT_EVENTS[0]);
 
+  // One-time: join the tournament named in the URL, or start a new one.
+  useEffect(() => {
+    if (!supabaseEnabled) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const urlId = getTournamentIdFromUrl();
+        if (urlId) {
+          const remote = await loadTournament(urlId);
+          if (remote) {
+            if (cancelled) return;
+            setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
+            setActive(remote.active || 0);
+            setTournamentId(urlId);
+            setSyncStatus('synced');
+            return;
+          }
+        }
+        const id = await createTournament({ events, active });
+        setTournamentIdInUrl(id);
+        if (!cancelled) { setTournamentId(id); setSyncStatus('synced'); }
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) setSyncStatus('error');
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Live updates from other people viewing/editing the same tournament link.
+  useEffect(() => {
+    if (!supabaseEnabled || !tournamentId) return;
+    return subscribeTournament(tournamentId, (remote) => {
+      skipNextSave.current = true;
+      setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
+      setActive(remote.active || 0);
+    });
+  }, [tournamentId]);
+
   useEffect(() => {
     saveState({ events, active });
-  }, [events, active]);
+
+    if (!supabaseEnabled || !tournamentId) return;
+    if (skipNextSave.current) { skipNextSave.current = false; return; }
+
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveTournament(tournamentId, { events, active })
+        .then(() => setSyncStatus('synced'))
+        .catch((err) => { console.error(err); setSyncStatus('error'); });
+    }, 600);
+    return () => clearTimeout(saveTimer.current);
+  }, [events, active, tournamentId]);
 
   function updateEvent(mutator) {
     setEvents((prev) => {
@@ -231,6 +292,7 @@ export default function App() {
           <div className="sub">Upload a list, generate the knockout draw, edit everything.</div>
         </div>
         <div className="spacer" />
+        <ShareBar status={syncStatus} />
         <EventTabs
           events={events}
           active={active}
