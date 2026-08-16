@@ -102,6 +102,7 @@ export default function App() {
 
   function addNames(names) {
     let added = 0;
+    const duplicates = [];
     setEvents((prev) => {
       const next = [...prev];
       const ev = ensureEventShape(next[active]);
@@ -109,16 +110,19 @@ export default function App() {
       const players = [...ev.players];
       names.forEach((n) => {
         const v = n.trim();
-        if (v && !seen.has(v.toLowerCase())) {
-          players.push(v);
-          seen.add(v.toLowerCase());
-          added++;
+        if (!v) return;
+        if (seen.has(v.toLowerCase())) {
+          duplicates.push(v);
+          return;
         }
+        players.push(v);
+        seen.add(v.toLowerCase());
+        added++;
       });
       next[active] = { ...ev, players, bracket: added ? null : ev.bracket };
       return next;
     });
-    return added;
+    return { added, duplicates };
   }
 
   function clearAllEntries() {
@@ -312,7 +316,7 @@ export default function App() {
 
       <main>
         <aside>
-          <ImportPanel onAddNames={addNames} onClearAll={clearAllEntries} />
+          <ImportPanel onAddNames={addNames} onClearAll={clearAllEntries} existingPlayers={event.players} />
           <EntriesPanel
             event={event}
             onUpdateEvent={updateEvent}
