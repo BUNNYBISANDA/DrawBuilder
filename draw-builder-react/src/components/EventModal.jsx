@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CATEGORY_PRESETS, GENDER_OPTIONS, TYPE_OPTIONS, deriveEventName } from '../utils/eventMeta';
 
-export default function EventModal({ initial, onSave, onClose }) {
+export default function EventModal({ initial, onSave, onClose, onDelete, canDelete }) {
   const [category, setCategory] = useState(initial?.category || '');
   const [customCategory, setCustomCategory] = useState(
     initial?.category && !CATEGORY_PRESETS.includes(initial.category) ? initial.category : ''
@@ -72,9 +72,24 @@ export default function EventModal({ initial, onSave, onClose }) {
 
         <p className="modal-preview">Tab will show: <b>{preview}</b></p>
 
-        <div className="row" style={{ justifyContent: 'flex-end', marginTop: 6 }}>
-          <button type="button" className="btn secondary" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn">{initial ? 'Save' : 'Add event'}</button>
+        <div className="row" style={{ justifyContent: 'space-between', marginTop: 6 }}>
+          {initial ? (
+            <button
+              type="button"
+              className="btn secondary danger"
+              disabled={!canDelete}
+              title={canDelete ? 'Delete this event and all its entries/draw' : 'At least one event must remain'}
+              onClick={() => {
+                if (confirm(`Delete "${initial.name}" and everything in it (entries, seeds, draw, scores)? This can't be undone.`)) onDelete();
+              }}
+            >
+              Delete event
+            </button>
+          ) : <span />}
+          <div className="row" style={{ gap: 8 }}>
+            <button type="button" className="btn secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn">{initial ? 'Save' : 'Add event'}</button>
+          </div>
         </div>
       </form>
     </div>

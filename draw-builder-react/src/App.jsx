@@ -142,6 +142,18 @@ export default function App() {
     });
   }
 
+  function clearAdvance(r, i) {
+    const br = event.bracket;
+    if (!br) return;
+    const cell = br.rounds[r][i];
+    if (!cell) return;
+    updateEvent((ev) => {
+      const next = structuredClone(ev.bracket);
+      clearDownstream(next, r, i, cell);
+      return { ...ev, bracket: next };
+    });
+  }
+
   function handleSwapClick(i) {
     if (swapSlot === null) {
       setSwapSlot(i);
@@ -245,6 +257,17 @@ export default function App() {
             }
             setEventModal(null);
           }}
+          canDelete={events.length > 1}
+          onDelete={() => {
+            const removedIndex = eventModal;
+            setEvents((prev) => prev.filter((_, i) => i !== removedIndex));
+            setActive((prevActive) => {
+              if (removedIndex < prevActive) return prevActive - 1;
+              if (removedIndex === prevActive) return Math.max(0, prevActive - 1);
+              return prevActive;
+            });
+            setEventModal(null);
+          }}
         />
       )}
 
@@ -330,6 +353,7 @@ export default function App() {
                 onAdvance={advance}
                 onSwapClick={handleSwapClick}
                 onRenameCell={renameCell}
+                onClearAdvance={clearAdvance}
                 canvasRef={canvasRef}
               />
               <p className="footer-note">
