@@ -28,13 +28,11 @@ header .spacer{flex:1}
 .sync-dot.sync-error{background:#C0392B}
 .sync-dot.sync-local{background:#C9B79C}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.evt-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.evt-tab{background:transparent;border:1.5px solid #A8654A;color:#F1E4C9;padding:6px 14px;border-radius:999px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
-.evt-tab.active{background:#fff;color:var(--court);border-color:#fff}
-.evt-tab.add{border-style:dashed}
-.evt-group{display:flex;align-items:center;gap:6px;padding:0 4px;border-right:1px solid #7A3320;margin-right:2px}
-.evt-group:last-of-type{border-right:none}
-.evt-group-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:#D8B98E;margin-right:2px}
+.evt-picker{display:flex;align-items:center;gap:6px}
+.evt-select{background:#fff;color:var(--court);border:1.5px solid #fff;border-radius:999px;padding:7px 14px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;max-width:260px}
+.evt-select:focus{outline:2px solid var(--cork);outline-offset:1px}
+.evt-edit{background:transparent;border-color:#A8654A;color:#F1E4C9;padding:6px 11px;line-height:1}
+.evt-edit:hover{border-color:#F1E4C9}
 
 /* ---------- modal ---------- */
 .modal-backdrop{position:fixed;inset:0;background:rgba(36,26,18,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
@@ -175,7 +173,8 @@ select:focus{outline:none;border-color:var(--court-soft)}
   header{padding:12px 14px;gap:10px}
   header h1{font-size:18px}
   header .sub{font-size:11.5px}
-  .evt-tabs{width:100%}
+  .evt-picker{width:100%}
+  .evt-select{flex:1;min-width:0;max-width:none}
 
   aside{padding:14px;gap:12px}
   .stage{padding:12px 14px}
@@ -190,7 +189,7 @@ select:focus{outline:none;border-color:var(--court-soft)}
   /* Comfortable tap targets over the compact desktop sizing */
   .seed-row .mv,.seed-row .del{font-size:17px;padding:6px 8px}
   .btn.small{padding:8px 12px;font-size:13px}
-  .evt-tab{padding:7px 13px}
+  .evt-select{padding:8px 13px}
 
   .modal{padding:16px;border-radius:12px}
 

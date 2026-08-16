@@ -19,26 +19,27 @@ export default function EventTabs({ events, active, onSelect, onEdit, onAddClick
   });
 
   return (
-    <nav className="evt-tabs">
-      {groups.map((g, gi) => (
-        <span className="evt-group" key={gi}>
-          {useCategories && (
-            <span className="evt-group-label">{g.label}</span>
-          )}
-          {g.items.map(({ ev, i }) => (
-            <button
-              key={i}
-              className={'evt-tab' + (i === active ? ' active' : '')}
-              onClick={() => onSelect(i)}
-              onDoubleClick={readOnly ? undefined : () => onEdit(i)}
-              title={readOnly ? undefined : 'Double-click to edit category / gender / type'}
-            >
-              {ev.name}
-            </button>
-          ))}
-        </span>
-      ))}
-      {!readOnly && <button className="evt-tab add" onClick={onAddClick}>+ Event</button>}
-    </nav>
+    <div className="evt-picker">
+      <select
+        className="evt-select"
+        value={active}
+        onChange={(e) => onSelect(Number(e.target.value))}
+        title={`${events.length} event${events.length === 1 ? '' : 's'} in this tournament`}
+      >
+        {useCategories
+          ? groups.map((g, gi) => (
+              <optgroup label={g.label} key={gi}>
+                {g.items.map(({ ev, i }) => <option key={i} value={i}>{ev.name}</option>)}
+              </optgroup>
+            ))
+          : events.map((ev, i) => <option key={i} value={i}>{ev.name}</option>)}
+      </select>
+      {!readOnly && (
+        <>
+          <button type="button" className="btn small secondary evt-edit" title="Edit this event's category / gender / type" onClick={() => onEdit(active)}>✎</button>
+          <button type="button" className="btn small secondary evt-edit" title="Add a new event" onClick={onAddClick}>+</button>
+        </>
+      )}
+    </div>
   );
 }
