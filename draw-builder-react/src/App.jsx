@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import EventTabs from './components/EventTabs';
 import EventModal from './components/EventModal';
 import ShareBar from './components/ShareBar';
-import slsbaLogo from './assets/slsba-logo.jpg';
 import ImportPanel from './components/ImportPanel';
 import EntriesPanel from './components/EntriesPanel';
 import BracketView from './components/BracketView';
@@ -265,10 +264,9 @@ export default function App() {
   return (
     <>
       <header>
-        <img className="mark" src={slsbaLogo} alt="SLSBA crest" />
         <div>
-          <h1>SLSBA Draw Builder</h1>
-          <div className="sub">Sri Lanka Schools' Badminton Association — tournament draws &amp; scoring</div>
+          <h1>Galle Zonal Draw Builder</h1>
+          <div className="sub">Tournament draws, schedules &amp; scores</div>
         </div>
         <div className="spacer" />
         <ShareBar status={syncStatus} />

@@ -5,7 +5,6 @@ import SchedulerView from './components/SchedulerView';
 import { supabaseEnabled } from './utils/supabase';
 import { getTournamentIdFromUrl, loadTournament, subscribeTournament } from './utils/tournamentSync';
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
-import slsbaLogo from './assets/slsba-logo.jpg';
 
 export default function PublicView() {
   const [events, setEvents] = useState(DEFAULT_EVENTS);
@@ -66,10 +65,9 @@ export default function PublicView() {
   return (
     <>
       <header className="public-header">
-        <img className="mark" src={slsbaLogo} alt="SLSBA crest" />
         <div>
           <h1>{event.name}</h1>
-          <div className="sub">SLSBA — live draw &amp; schedule, view only</div>
+          <div className="sub">Galle Zonal — live draw &amp; schedule, view only</div>
         </div>
         <div className="spacer" />
         <span className="sync-dot sync-synced" title="Live" />
