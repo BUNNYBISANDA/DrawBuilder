@@ -7,17 +7,34 @@ const STATUS_LABEL = {
   local: 'This device only',
 };
 
-export default function ShareBar({ status }) {
-  const [copied, setCopied] = useState(false);
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    prompt('Copy this link:', text);
+    return false;
+  }
+}
 
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      prompt('Copy this link to share the live tournament:', window.location.href);
-    }
+export default function ShareBar({ status }) {
+  const [copied, setCopied] = useState(null); // null | 'edit' | 'watch'
+
+  function flash(kind) {
+    setCopied(kind);
+    setTimeout(() => setCopied(null), 1800);
+  }
+
+  async function copyEditLink() {
+    await copyToClipboard(window.location.href);
+    flash('edit');
+  }
+
+  async function copyWatchLink() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'watch');
+    await copyToClipboard(url.toString());
+    flash('watch');
   }
 
   return (
@@ -25,9 +42,14 @@ export default function ShareBar({ status }) {
       <span className={'sync-dot sync-' + status} />
       <span className="sync-label">{STATUS_LABEL[status] || status}</span>
       {status !== 'local' && (
-        <button type="button" className="btn small secondary" onClick={copyLink}>
-          {copied ? 'Copied!' : 'Copy link'}
-        </button>
+        <>
+          <button type="button" className="btn small secondary" onClick={copyEditLink} title="Link for organizers — full editing access">
+            {copied === 'edit' ? 'Copied!' : 'Copy edit link'}
+          </button>
+          <button type="button" className="btn small secondary" onClick={copyWatchLink} title="Link for players/parents — view only, no editing">
+            {copied === 'watch' ? 'Copied!' : 'Copy watch link'}
+          </button>
+        </>
       )}
     </div>
   );
