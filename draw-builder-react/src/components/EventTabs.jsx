@@ -1,6 +1,26 @@
+import { useEffect, useRef, useState } from 'react';
 import { categorySortKey } from '../utils/eventMeta';
 
 export default function EventTabs({ events, active, onSelect, onEdit, onAddClick, readOnly = false }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e) {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   const useCategories = events.some((e) => e.category);
   const indexed = events.map((ev, i) => ({ ev, i }));
   // Only regroup by category once categories are actually in use — a stable
@@ -18,22 +38,40 @@ export default function EventTabs({ events, active, onSelect, onEdit, onAddClick
     else groups.push({ label, items: [{ ev, i }] });
   });
 
+  const current = events[active];
+
   return (
-    <div className="evt-picker">
-      <select
-        className="evt-select"
-        value={active}
-        onChange={(e) => onSelect(Number(e.target.value))}
+    <div className="evt-picker" ref={rootRef}>
+      <button
+        type="button"
+        className={'evt-select-btn' + (open ? ' open' : '')}
+        onClick={() => setOpen((v) => !v)}
         title={`${events.length} event${events.length === 1 ? '' : 's'} in this tournament`}
       >
-        {useCategories
-          ? groups.map((g, gi) => (
-              <optgroup label={g.label} key={gi}>
-                {g.items.map(({ ev, i }) => <option key={i} value={i}>{ev.name}</option>)}
-              </optgroup>
-            ))
-          : events.map((ev, i) => <option key={i} value={i}>{ev.name}</option>)}
-      </select>
+        <span className="evt-select-name">{current ? current.name : 'Select event'}</span>
+        <span className="evt-select-caret">▾</span>
+      </button>
+
+      {open && (
+        <div className="evt-dropdown">
+          {groups.map((g, gi) => (
+            <div className="evt-dropdown-group" key={gi}>
+              {useCategories && <div className="evt-dropdown-label">{g.label}</div>}
+              {g.items.map(({ ev, i }) => (
+                <button
+                  type="button"
+                  key={i}
+                  className={'evt-dropdown-item' + (i === active ? ' active' : '')}
+                  onClick={() => { onSelect(i); setOpen(false); }}
+                >
+                  {ev.name}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
       {!readOnly && (
         <>
           <button type="button" className="btn small secondary evt-edit" title="Edit this event's category / gender / type" onClick={() => onEdit(active)}>✎</button>
