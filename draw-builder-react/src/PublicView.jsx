@@ -2,15 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import EventTabs from './components/EventTabs';
 import BracketView from './components/BracketView';
 import SchedulerView from './components/SchedulerView';
+import DrawSearch from './components/DrawSearch';
 import { supabaseEnabled } from './utils/supabase';
 import { getTournamentIdFromUrl, loadTournament, subscribeTournament } from './utils/tournamentSync';
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
+import { countSearchMatches } from './utils/bracket';
 
 export default function PublicView() {
   const [events, setEvents] = useState(DEFAULT_EVENTS);
   const [active, setActive] = useState(0);
   const [view, setView] = useState('bracket');
   const [zoom, setZoom] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchFocus, setSearchFocus] = useState(0);
   const [status, setStatus] = useState('loading'); // loading | ready | not-found | disabled
   const canvasRef = useRef(null);
 
@@ -39,6 +43,8 @@ export default function PublicView() {
     });
   }, [tournamentId, status]);
 
+  useEffect(() => { setSearchFocus(0); }, [searchTerm, active]);
+
   if (status === 'disabled') {
     return (
       <div className="public-message">
@@ -61,6 +67,7 @@ export default function PublicView() {
 
   const event = ensureEventShape(events[active] || DEFAULT_EVENTS[0]);
   const byes = event.bracket ? event.bracket.size - event.bracket.entrants : 0;
+  const searchMatchCount = event.bracket ? countSearchMatches(event.bracket, searchTerm) : 0;
 
   return (
     <>
@@ -71,7 +78,7 @@ export default function PublicView() {
         </div>
         <div className="spacer" />
         <span className="sync-dot sync-synced" title="Live" />
-        <EventTabs events={events} active={active} onSelect={setActive} readOnly />
+        <EventTabs events={events} active={active} onSelect={(i) => { setActive(i); setSearchTerm(''); }} readOnly />
       </header>
 
       <section className="stage public-stage">
@@ -86,6 +93,15 @@ export default function PublicView() {
               <span className="chip">Draw size <b>{event.bracket.size}</b> · entries <b>{event.bracket.entrants}</b></span>
               <span className="chip">{byes ? <>Byes <b>{byes}</b></> : 'No byes'}</span>
               <div className="stage-actions">
+                {view === 'bracket' && (
+                  <DrawSearch
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    matchCount={searchMatchCount}
+                    focusIndex={searchFocus}
+                    onFocusIndexChange={setSearchFocus}
+                  />
+                )}
                 <div className="view-toggle">
                   <button className={'btn small secondary' + (view === 'bracket' ? ' active' : '')} onClick={() => setView('bracket')}>Draw</button>
                   <button className={'btn small secondary' + (view === 'scheduler' ? ' active' : '')} onClick={() => setView('scheduler')}>Schedule</button>
@@ -100,7 +116,14 @@ export default function PublicView() {
               </div>
             </div>
             {view === 'bracket' ? (
-              <BracketView bracket={event.bracket} zoom={zoom} canvasRef={canvasRef} readOnly />
+              <BracketView
+                bracket={event.bracket}
+                zoom={zoom}
+                canvasRef={canvasRef}
+                readOnly
+                searchTerm={searchTerm}
+                searchFocus={searchFocus}
+              />
             ) : (
               <SchedulerView bracket={event.bracket} readOnly />
             )}

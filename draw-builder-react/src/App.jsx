@@ -6,8 +6,9 @@ import ImportPanel from './components/ImportPanel';
 import EntriesPanel from './components/EntriesPanel';
 import BracketView from './components/BracketView';
 import SchedulerView from './components/SchedulerView';
+import DrawSearch from './components/DrawSearch';
 import { normalizeName, updateSeedName } from './utils/names';
-import { buildBracket, samePlayer, clearDownstream, propagateRename, ensureMatches, emptyMatch } from './utils/bracket';
+import { buildBracket, samePlayer, clearDownstream, propagateRename, ensureMatches, emptyMatch, countSearchMatches } from './utils/bracket';
 import { exportBracketPdf } from './utils/pdfExport';
 import { loadState, saveState } from './utils/storage';
 import { supabaseEnabled } from './utils/supabase';
@@ -28,6 +29,8 @@ export default function App() {
   const [exportNote, setExportNote] = useState('32 slots per page');
   const [exportCls, setExportCls] = useState('');
   const [view, setView] = useState('bracket');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchFocus, setSearchFocus] = useState(0);
   const [eventModal, setEventModal] = useState(null); // null | 'add' | eventIndex (number) for edit
   const [tournamentId, setTournamentId] = useState(null);
   const [syncStatus, setSyncStatus] = useState(supabaseEnabled ? 'connecting' : 'local'); // 'local' | 'connecting' | 'synced' | 'error'
@@ -264,6 +267,9 @@ export default function App() {
 
   const byes = event.bracket ? event.bracket.size - event.bracket.entrants : 0;
   const seededCount = event.bracket ? event.bracket.rounds[0].filter((c) => c && c.seed).length : 0;
+  const searchMatchCount = event.bracket ? countSearchMatches(event.bracket, searchTerm) : 0;
+
+  useEffect(() => { setSearchFocus(0); }, [searchTerm, active]);
 
   return (
     <>
@@ -277,7 +283,7 @@ export default function App() {
         <EventTabs
           events={events}
           active={active}
-          onSelect={(i) => { setActive(i); setSwapSlot(null); setMoveByes(false); setView('bracket'); }}
+          onSelect={(i) => { setActive(i); setSwapSlot(null); setMoveByes(false); setView('bracket'); setSearchTerm(''); }}
           onEdit={(i) => setEventModal(i)}
           onAddClick={() => setEventModal('add')}
         />
@@ -339,6 +345,15 @@ export default function App() {
               </>
             ) : null}
             <div className="stage-actions">
+              {event.bracket && view === 'bracket' && (
+                <DrawSearch
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  matchCount={searchMatchCount}
+                  focusIndex={searchFocus}
+                  onFocusIndexChange={setSearchFocus}
+                />
+              )}
               {event.bracket && (
                 <div className="view-toggle">
                   <button className={'btn small secondary' + (view === 'bracket' ? ' active' : '')} onClick={() => setView('bracket')}>Bracket</button>
@@ -398,6 +413,8 @@ export default function App() {
                 onRenameCell={renameCell}
                 onClearAdvance={clearAdvance}
                 canvasRef={canvasRef}
+                searchTerm={searchTerm}
+                searchFocus={searchFocus}
               />
               <p className="footer-note">
                 {moveByes

@@ -201,3 +201,14 @@ export function displayPlayerName(cell) {
   if (!cell) return '';
   return cell.seed ? `${cell.name} (${cell.seed})` : cell.name;
 }
+
+// Order matches round-major/index-minor, matching BracketView's render order.
+export function countSearchMatches(bracket, query) {
+  const q = (query || '').trim().toLowerCase();
+  if (!q || !bracket) return 0;
+  let count = 0;
+  bracket.rounds.forEach((round) => round.forEach((cell) => {
+    if (cell && !cell.bye && cell.name && cell.name.toLowerCase().includes(q)) count++;
+  }));
+  return count;
+}

@@ -6,8 +6,11 @@ export default function BracketView({
   bracket, moveByes, swapSlot, zoom,
   onAdvance, onSwapClick, onRenameCell, onClearAdvance, canvasRef,
   readOnly = false,
+  searchTerm = '', searchFocus = 0,
 }) {
   const scalerRef = useRef(null);
+  const viewportRef = useRef(null);
+  const matchRefs = useRef(new Map());
 
   useEffect(() => {
     if (!scalerRef.current || !canvasRef.current) return;
@@ -17,6 +20,15 @@ export default function BracketView({
     s.style.width = (parseFloat(c.style.width || '0') * zoom) + 'px';
     s.style.height = (parseFloat(c.style.height || '0') * zoom) + 'px';
   }, [zoom, bracket]);
+
+  const query = searchTerm.trim().toLowerCase();
+
+  useEffect(() => {
+    if (!query) return;
+    const el = matchRefs.current.get(searchFocus);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, searchFocus, bracket]);
 
   if (!bracket) return null;
 
@@ -48,8 +60,11 @@ export default function BracketView({
     }
   }
 
+  if (query) matchRefs.current = new Map();
+  let matchCounter = -1;
+
   return (
-    <div id="viewport">
+    <div id="viewport" ref={viewportRef}>
       <div id="scaler" ref={scalerRef}>
         <div id="canvas" ref={canvasRef} style={{ width: canvasWidth, height: canvasHeight }}>
           {labels.map((lab, r) => (
@@ -64,16 +79,22 @@ export default function BracketView({
             const swapable = !readOnly && moveByes && r === 0 && !!cell;
             const selected = swapable && swapSlot === i;
             const isChamp = r === R - 1 && cell;
+            const isMatch = !!(query && cell && !cell.bye && cell.name && cell.name.toLowerCase().includes(query));
+            const myMatchIndex = isMatch ? ++matchCounter : -1;
+            const isCurrentMatch = isMatch && myMatchIndex === searchFocus;
             const cls = 'slot'
               + (cell ? (cell.bye ? ' bye' : ' filled') : '')
               + (isChamp ? ' champ winner' : '')
               + (swapable ? ' swapable' : '')
-              + (selected ? ' swap-selected' : '');
+              + (selected ? ' swap-selected' : '')
+              + (isMatch ? ' search-match' : '')
+              + (isCurrentMatch ? ' search-current' : '');
             const editable = !readOnly && r === 0 && cell && !cell.bye && !moveByes;
             return (
               <div
                 key={`s-${r}-${i}`}
                 className={cls}
+                ref={isMatch ? (el) => { if (el) matchRefs.current.set(myMatchIndex, el); } : undefined}
                 style={{ left: x, top: y, width: BOX_W, height: BOX_H }}
                 title={readOnly ? undefined : swapable ? (selected ? 'Selected - click another round-1 slot to swap' : 'Click to select this round-1 slot for swapping')
                   : (cell && !cell.bye && r < R - 1 ? 'Click to advance ' + displayPlayerName(cell) : undefined)}
