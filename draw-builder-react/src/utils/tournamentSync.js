@@ -53,3 +53,25 @@ export function subscribeTournament(id, onRemoteChange) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
+
+// Tracks who else currently has this tournament's edit link open, so
+// simultaneous editors are visible to each other instead of silently
+// clobbering one another's changes. onSync(list) fires with everyone
+// present (including yourself) whenever the roster changes.
+export function subscribePresence(id, me, onSync) {
+  const channel = supabase.channel(`presence-${id}`, {
+    config: { presence: { key: me.editorId } },
+  });
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const editors = Object.values(state)
+        .map((entries) => entries[0])
+        .filter(Boolean);
+      onSync(editors);
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') channel.track(me);
+    });
+  return () => supabase.removeChannel(channel);
+}

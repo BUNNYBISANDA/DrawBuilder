@@ -16,8 +16,9 @@ import { loadState, saveState } from './utils/storage';
 import { supabaseEnabled } from './utils/supabase';
 import {
   getTournamentIdFromUrl, setTournamentIdInUrl,
-  createTournament, loadTournament, saveTournament, subscribeTournament,
+  createTournament, loadTournament, saveTournament, subscribeTournament, subscribePresence,
 } from './utils/tournamentSync';
+import { getEditorId, getEditorName, setEditorName } from './utils/editorIdentity';
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
 
 export default function App() {
@@ -44,9 +45,37 @@ export default function App() {
   // request, ...). Every change is written to localStorage first regardless —
   // this flag just tracks whether the cloud copy still needs to catch up.
   const pendingSyncRef = useRef(!!saved?.pendingSync);
+  // Indices into `events` that have local changes not yet confirmed synced.
+  // Used to merge incoming updates per-event instead of overwriting the whole
+  // array, so two organizers editing two different events never stomp each
+  // other. If we reloaded with unsynced changes from last time, we don't know
+  // which specific event(s) they touched — assume all of them until our
+  // pending push confirms, rather than risk silently discarding an edit.
+  const dirtyIndexesRef = useRef(
+    saved?.pendingSync && saved?.events?.length ? new Set(saved.events.map((_, i) => i)) : new Set()
+  );
   const eventsRef = useRef(events);
   const activeRef = useRef(active);
   useEffect(() => { eventsRef.current = events; activeRef.current = active; }, [events, active]);
+
+  // Who's editing — a stable per-browser identity, used to tell "my own edit
+  // echoing back" apart from a real change from someone else, and to show
+  // everyone who currently has this tournament's edit link open.
+  const editorIdRef = useRef(getEditorId());
+  const [editorName, setEditorNameState] = useState(getEditorName());
+  const [editors, setEditors] = useState([]);
+  const [notice, setNotice] = useState(null); // { kind: 'info' | 'conflict', text }
+  const noticeTimer = useRef(null);
+
+  function showNotice(kind, text, autoDismissMs) {
+    setNotice({ kind, text });
+    clearTimeout(noticeTimer.current);
+    if (autoDismissMs) noticeTimer.current = setTimeout(() => setNotice(null), autoDismissMs);
+  }
+
+  function changeEditorName(name) {
+    setEditorNameState(setEditorName(name));
+  }
 
   const event = ensureEventShape(events[active] || DEFAULT_EVENTS[0]);
 
@@ -63,10 +92,16 @@ export default function App() {
   // source of truth so a dropped connection never loses an edit — it just
   // waits (with retries) until the push finally goes through.
   async function pushToRemote(id, state) {
+    const payload = { ...state, editor: editorName || 'An organizer', editorId: editorIdRef.current, editedAt: Date.now() };
+    // Snapshot which events were dirty as of this push — if a new edit lands
+    // while the request is in flight, it stays marked dirty even after this
+    // push succeeds, instead of being mistaken for already-synced.
+    const dirtySnapshot = new Set(dirtyIndexesRef.current);
     try {
-      await saveTournament(id, state);
-      pendingSyncRef.current = false;
-      saveState({ events: state.events, active: state.active, pendingSync: false, tournamentId: id });
+      await saveTournament(id, payload);
+      dirtySnapshot.forEach((i) => dirtyIndexesRef.current.delete(i));
+      pendingSyncRef.current = dirtyIndexesRef.current.size > 0;
+      saveState({ events: state.events, active: state.active, pendingSync: pendingSyncRef.current, tournamentId: id });
       setSyncStatus('synced');
       if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
     } catch (err) {
@@ -129,14 +164,53 @@ export default function App() {
   useEffect(() => {
     if (!supabaseEnabled || !tournamentId) return;
     return subscribeTournament(tournamentId, (remote) => {
-      // Don't let an incoming remote snapshot stomp local edits we haven't
-      // managed to push yet — our pending push will reconcile once it lands.
-      if (pendingSyncRef.current) return;
-      skipNextSave.current = true;
-      setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
-      setActive(remote.active || 0);
+      const fromSelf = remote.editorId && remote.editorId === editorIdRef.current;
+      const hadDirty = dirtyIndexesRef.current.size > 0;
+      const remoteEvents = remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS;
+      const structural = remoteEvents.length !== eventsRef.current.length;
+
+      if (!fromSelf) {
+        const who = remote.editor || 'Someone';
+        if (hadDirty && structural) {
+          // A genuine conflict: an event was added/removed elsewhere while we
+          // still had unsynced changes, so a safe per-event merge isn't
+          // possible here — flag it instead of silently picking a side.
+          showNotice('conflict', `${who} added or removed an event while you had unsynced changes. Your local changes were kept for now — refresh once your edits have synced to make sure everything lines up.`, 0);
+        } else if (hadDirty) {
+          showNotice('info', `${who} updated another event. Your own changes are kept and will be sent automatically.`, 5000);
+        } else {
+          showNotice('info', `${who} updated the draw.`, 5000);
+        }
+      }
+
+      setEvents((prevLocal) => {
+        if (!hadDirty) {
+          // Nothing of ours pending — the incoming snapshot is authoritative.
+          return remoteEvents;
+        }
+        if (structural) {
+          // Can't safely merge an added/removed event against our own
+          // unsynced changes by index — leave our copy alone until our
+          // pending push resolves, per the conflict notice above.
+          return prevLocal;
+        }
+        // Merge per event: keep our own not-yet-synced event(s) exactly as
+        // they are locally, take theirs for everything else. This is what
+        // lets two organizers edit two different events at once without
+        // either side's screen jumping or losing work.
+        return prevLocal.map((localEv, i) => (dirtyIndexesRef.current.has(i) ? localEv : remoteEvents[i]));
+      });
+      // Never adopt someone else's tab selection — switching events on one
+      // laptop shouldn't switch the view on everyone else's.
+      if (!hadDirty) skipNextSave.current = true;
     });
   }, [tournamentId]);
+
+  // Presence: who else currently has this tournament's edit link open.
+  useEffect(() => {
+    if (!supabaseEnabled || !tournamentId) return;
+    return subscribePresence(tournamentId, { editorId: editorIdRef.current, name: editorName || 'Organizer' }, setEditors);
+  }, [tournamentId, editorName]);
 
   // Retry the moment the browser regains connectivity, instead of waiting
   // for the next edit (which may never come if the organizer just walks away).
@@ -167,6 +241,7 @@ export default function App() {
   }, [events, active, tournamentId]);
 
   function updateEvent(mutator) {
+    dirtyIndexesRef.current.add(active);
     setEvents((prev) => {
       const next = [...prev];
       next[active] = mutator(ensureEventShape(next[active]));
@@ -177,6 +252,7 @@ export default function App() {
   function addNames(names) {
     let added = 0;
     const duplicates = [];
+    dirtyIndexesRef.current.add(active);
     setEvents((prev) => {
       const next = [...prev];
       const ev = ensureEventShape(next[active]);
@@ -357,21 +433,37 @@ export default function App() {
           <div className="sub">Tournament draws, schedules &amp; scores</div>
         </div>
         <div className="spacer" />
-        <ShareBar status={syncStatus} />
+        <ShareBar
+          status={syncStatus}
+          editorName={editorName}
+          onChangeName={changeEditorName}
+          editors={editors}
+          myEditorId={editorIdRef.current}
+        />
         <EventTabs
           events={events}
           active={active}
           onSelect={(i) => { setActive(i); setSwapSlot(null); setMoveByes(false); setView('bracket'); setSearchTerm(''); }}
           onEdit={(i) => setEventModal(i)}
           onAddClick={() => setEventModal('add')}
-          onToggleHidden={(i) => setEvents((prev) => {
-            const next = [...prev];
-            const ev = ensureEventShape(next[i]);
-            next[i] = { ...ev, hidden: !ev.hidden };
-            return next;
-          })}
+          onToggleHidden={(i) => {
+            dirtyIndexesRef.current.add(i);
+            setEvents((prev) => {
+              const next = [...prev];
+              const ev = ensureEventShape(next[i]);
+              next[i] = { ...ev, hidden: !ev.hidden };
+              return next;
+            });
+          }}
         />
       </header>
+
+      {notice && (
+        <div className={'edit-notice ' + (notice.kind === 'conflict' ? 'edit-notice-conflict' : 'edit-notice-info')}>
+          <span>{notice.kind === 'conflict' ? '⚠️' : 'ℹ️'} {notice.text}</span>
+          <button type="button" className="edit-notice-close" onClick={() => setNotice(null)} title="Dismiss">×</button>
+        </div>
+      )}
 
       {eventModal !== null && (
         <EventModal
@@ -382,6 +474,7 @@ export default function App() {
               setEvents((prev) => [...prev, { ...meta, players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null }]);
               setActive(events.length);
             } else {
+              dirtyIndexesRef.current.add(eventModal);
               setEvents((prev) => {
                 const next = [...prev];
                 next[eventModal] = { ...ensureEventShape(next[eventModal]), ...meta };
