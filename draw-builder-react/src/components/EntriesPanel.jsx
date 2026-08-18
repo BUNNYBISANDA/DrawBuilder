@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { normalizeName, parseSeedLines, parseLineNumbers, parseSeedEntry, renameSeedByName } from '../utils/names';
-import { selectedDrawSize } from '../utils/bracket';
+import { selectedDrawSize, propagateRename } from '../utils/bracket';
 
 export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExportPdf }) {
   const players = event.players;
@@ -16,6 +16,7 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
   function renameEntry(i, value) {
     const oldName = players[i];
     const nextName = value.trim() || oldName;
+    if (nextName === oldName) return;
     onUpdateEvent((ev) => {
       const nextPlayers = [...ev.players];
       nextPlayers[i] = nextName;
@@ -23,7 +24,11 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
       const nextPresent = (ev.present || []).includes(oldName)
         ? [...(ev.present || []).filter((n) => n !== oldName), nextName]
         : (ev.present || []);
-      return { ...ev, players: nextPlayers, seeds: nextSeeds, present: nextPresent, bracket: null };
+      // A typo fix shouldn't nuke a live bracket — just relabel this entrant
+      // everywhere they appear (including any rounds they've already advanced to).
+      const nextBracket = ev.bracket ? structuredClone(ev.bracket) : null;
+      if (nextBracket) propagateRename(nextBracket, i + 1, nextName);
+      return { ...ev, players: nextPlayers, seeds: nextSeeds, present: nextPresent, bracket: nextBracket };
     });
   }
 
