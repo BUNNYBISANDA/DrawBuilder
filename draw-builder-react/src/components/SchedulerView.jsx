@@ -33,13 +33,6 @@ function SetScoreInputs({ sets, onChange }) {
   );
 }
 
-function formatScheduledTime(value) {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-}
-
 function formatSets(sets) {
   const played = (sets || []).filter((s) => s && (s[0] !== '' || s[1] !== ''));
   if (!played.length) return '—';
@@ -57,7 +50,6 @@ export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false
             <th>Round</th>
             <th>Players</th>
             <th>Court</th>
-            <th>Scheduled time</th>
             <th>Status</th>
             <th>Score{readOnly ? '' : ' (best of 3)'}</th>
           </tr>
@@ -72,11 +64,10 @@ export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false
                 {b ? displayPlayerName(b) : <span className="tbd">TBD</span>}
               </td>
               {isBye ? (
-                <td colSpan={4} className="tbd">— BYE, no match to schedule —</td>
+                <td colSpan={3} className="tbd">— BYE, no match to schedule —</td>
               ) : readOnly ? (
                 <>
                   <td>{match.court || '—'}</td>
-                  <td>{formatScheduledTime(match.scheduledTime)}</td>
                   <td>{STATUS_LABEL[match.status] || match.status}</td>
                   <td>{formatSets(match.sets)}</td>
                 </>
@@ -88,14 +79,6 @@ export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false
                       placeholder="e.g. Court 3"
                       value={match.court}
                       onChange={(e) => onUpdateMatch(r, m, { court: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="sched-input"
-                      type="datetime-local"
-                      value={match.scheduledTime}
-                      onChange={(e) => onUpdateMatch(r, m, { scheduledTime: e.target.value })}
                     />
                   </td>
                   <td>

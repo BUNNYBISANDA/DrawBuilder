@@ -186,6 +186,13 @@ export default function App() {
         const nextExisting = next.rounds[r + 1][nextI];
         if (nextExisting) clearDownstream(next, r + 1, nextI, nextExisting);
         next.rounds[r + 1][nextI] = { ...cell };
+        // Picking a winner means that match is over — flip its scheduler
+        // status to Completed unless it was already given a final status.
+        next.matches = ensureMatches(next);
+        const m = next.matches[r][nextI];
+        if (m.status !== 'completed' && m.status !== 'walkover' && m.status !== 'retired') {
+          next.matches[r][nextI] = { ...m, status: 'completed' };
+        }
       }
       return { ...ev, bracket: next };
     });
