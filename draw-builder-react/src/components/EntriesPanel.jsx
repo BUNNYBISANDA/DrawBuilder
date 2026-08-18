@@ -20,7 +20,10 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
       const nextPlayers = [...ev.players];
       nextPlayers[i] = nextName;
       const nextSeeds = renameSeedByName(ev.seeds, oldName, nextName);
-      return { ...ev, players: nextPlayers, seeds: nextSeeds, bracket: null };
+      const nextPresent = (ev.present || []).includes(oldName)
+        ? [...(ev.present || []).filter((n) => n !== oldName), nextName]
+        : (ev.present || []);
+      return { ...ev, players: nextPlayers, seeds: nextSeeds, present: nextPresent, bracket: null };
     });
   }
 
@@ -35,6 +38,16 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
   function removeEntry(i) {
     const next = players.filter((_, idx) => idx !== i);
     setPlayers(next);
+  }
+
+  const present = event.present || [];
+  function togglePresent(name) {
+    onUpdateEvent((ev) => {
+      const set = new Set(ev.present || []);
+      if (set.has(name)) set.delete(name);
+      else set.add(name);
+      return { ...ev, present: [...set] };
+    });
   }
 
   function addOne() {
@@ -87,7 +100,7 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
         <h2><span className="n">2</span> Entries <span style={{ fontWeight: 400, fontSize: '12.5px', color: 'var(--ink-2)' }}>- fills the draw in this order</span></h2>
         <div className="seedwrap">
           <div className="seedhead">
-            <span>{players.length} entries</span>
+            <span>{players.length} entries · {present.length} checked in</span>
             <span className="row" style={{ gap: 6 }}>
               <button className="btn small secondary" title="Randomize the entry order" onClick={shuffle}>Shuffle</button>
               <button className="btn small secondary" onClick={addOne}>+ Add</button>
@@ -95,8 +108,15 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
           </div>
           <div className="seedlist">
             {players.map((p, i) => (
-              <div className="seed-row" key={i}>
+              <div className={'seed-row' + (present.includes(p) ? ' present' : '')} key={i}>
                 <span className="num">{i + 1}</span>
+                <input
+                  type="checkbox"
+                  className="present-check"
+                  title={present.includes(p) ? `${p} is checked in — click to mark as not here` : `Mark ${p} as checked in / available to play`}
+                  checked={present.includes(p)}
+                  onChange={() => togglePresent(p)}
+                />
                 <input defaultValue={p} key={p + i} onBlur={(e) => renameEntry(i, e.target.value)} />
                 <button className="mv" title="Move up entry number" onClick={() => moveEntry(i, -1)}>▲</button>
                 <button className="mv" title="Move down entry number" onClick={() => moveEntry(i, 1)}>▼</button>

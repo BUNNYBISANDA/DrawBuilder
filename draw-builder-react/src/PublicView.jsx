@@ -65,9 +65,23 @@ export default function PublicView() {
     return <div className="public-message"><h2>Loading tournament…</h2></div>;
   }
 
-  const event = ensureEventShape(events[active] || DEFAULT_EVENTS[0]);
+  const shapedEvents = events.map(ensureEventShape);
+  const visible = shapedEvents.map((e, i) => ({ e, i })).filter(({ e }) => !e.hidden);
+  const visibleEvents = visible.map(({ e }) => e);
+  const activeEvent = shapedEvents[active];
+  const event = (activeEvent && !activeEvent.hidden) ? activeEvent : (visibleEvents[0] || ensureEventShape(DEFAULT_EVENTS[0]));
+  const visibleActive = visible.findIndex(({ e }) => e === event);
   const byes = event.bracket ? event.bracket.size - event.bracket.entrants : 0;
   const searchMatchCount = event.bracket ? countSearchMatches(event.bracket, searchTerm) : 0;
+
+  if (!visibleEvents.length) {
+    return (
+      <div className="public-message">
+        <h2>No draws to show yet</h2>
+        <p>The organizer hasn't revealed any draws for this tournament yet. Check back soon.</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -78,7 +92,12 @@ export default function PublicView() {
         </div>
         <div className="spacer" />
         <span className="sync-dot sync-synced" title="Live" />
-        <EventTabs events={events} active={active} onSelect={(i) => { setActive(i); setSearchTerm(''); }} readOnly />
+        <EventTabs
+          events={visibleEvents}
+          active={visibleActive}
+          onSelect={(i) => { setActive(visible[i].i); setSearchTerm(''); }}
+          readOnly
+        />
       </header>
 
       <section className="stage public-stage">

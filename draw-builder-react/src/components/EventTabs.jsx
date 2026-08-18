@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { categorySortKey } from '../utils/eventMeta';
 
-export default function EventTabs({ events, active, onSelect, onEdit, onAddClick, readOnly = false }) {
+export default function EventTabs({ events, active, onSelect, onEdit, onAddClick, onToggleHidden, readOnly = false }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -58,14 +58,25 @@ export default function EventTabs({ events, active, onSelect, onEdit, onAddClick
             <div className="evt-dropdown-group" key={gi}>
               {useCategories && <div className="evt-dropdown-label">{g.label}</div>}
               {g.items.map(({ ev, i }) => (
-                <button
-                  type="button"
-                  key={i}
-                  className={'evt-dropdown-item' + (i === active ? ' active' : '')}
-                  onClick={() => { onSelect(i); setOpen(false); }}
-                >
-                  {ev.name}
-                </button>
+                <div className={'evt-dropdown-row' + (ev.hidden ? ' hidden-draw' : '')} key={i}>
+                  <button
+                    type="button"
+                    className={'evt-dropdown-item' + (i === active ? ' active' : '')}
+                    onClick={() => { onSelect(i); setOpen(false); }}
+                  >
+                    {ev.name}{ev.hidden ? <span className="evt-hidden-tag">Hidden</span> : null}
+                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="evt-hide-toggle"
+                      title={ev.hidden ? 'Show this draw on the watch link' : 'Hide this draw from the watch link'}
+                      onClick={() => onToggleHidden(i)}
+                    >
+                      {ev.hidden ? '🙈' : '👁'}
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           ))}

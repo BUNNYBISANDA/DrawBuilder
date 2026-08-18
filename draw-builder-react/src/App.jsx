@@ -286,6 +286,12 @@ export default function App() {
           onSelect={(i) => { setActive(i); setSwapSlot(null); setMoveByes(false); setView('bracket'); setSearchTerm(''); }}
           onEdit={(i) => setEventModal(i)}
           onAddClick={() => setEventModal('add')}
+          onToggleHidden={(i) => setEvents((prev) => {
+            const next = [...prev];
+            const ev = ensureEventShape(next[i]);
+            next[i] = { ...ev, hidden: !ev.hidden };
+            return next;
+          })}
         />
       </header>
 
@@ -335,6 +341,14 @@ export default function App() {
         <section className="stage">
           <div className="stage-top">
             <h2>{event.name} draw</h2>
+            <button
+              type="button"
+              className={'btn small secondary toggle' + (event.hidden ? ' active' : '')}
+              title={event.hidden ? 'Hidden from the watch link — click to reveal it' : 'Visible on the watch link — click to hide it'}
+              onClick={() => updateEvent((ev) => ({ ...ev, hidden: !ev.hidden }))}
+            >
+              {event.hidden ? '🙈 Hidden' : '👁 Visible'}
+            </button>
             {event.bracket ? (
               <>
                 <span className="chip">Draw size <b>{event.bracket.size}</b> · entries <b>{event.bracket.entrants}</b></span>

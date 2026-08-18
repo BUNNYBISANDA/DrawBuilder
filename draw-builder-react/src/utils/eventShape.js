@@ -2,7 +2,7 @@
 // via "+ Event" or double-click, rather than forcing unused Singles/Doubles
 // placeholders on organizers who name events by category (e.g. "U15 Boys Singles").
 export const DEFAULT_EVENTS = [
-  { name: 'Event 1', category: '', gender: '', type: 'Singles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null },
+  { name: 'Event 1', category: '', gender: '', type: 'Singles', players: [], seeds: [], drawSize: 'auto', customByes: [], bracket: null, hidden: false, present: [] },
 ];
 
 export function ensureEventShape(ev) {
@@ -17,5 +17,7 @@ export function ensureEventShape(ev) {
     drawSize: ev.drawSize || 'auto',
     customByes: Array.isArray(ev.customByes) ? ev.customByes : [],
     bracket: ev.bracket || null,
+    hidden: !!ev.hidden,
+    present: Array.isArray(ev.present) ? ev.present : [],
   };
 }
