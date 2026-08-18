@@ -412,7 +412,7 @@ export default function App() {
             <p className="hint">Choose draw size and custom BYE lines on the left. After generating, Move BYEs can still swap two round-1 slots if you need a quick adjustment.</p>
           )}
           {view === 'scheduler' && (
-            <p className="hint">Assign a court, a scheduled time, and record set scores for every real match. BYE lines have nothing to schedule.</p>
+            <p className="hint">Set the match status and record set scores for every real match. BYE lines have nothing to schedule.</p>
           )}
 
           {!event.bracket ? (

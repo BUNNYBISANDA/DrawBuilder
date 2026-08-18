@@ -172,7 +172,9 @@ export function flattenMatches(bracket) {
       const a = round[2 * m];
       const b = round[2 * m + 1];
       const match = (bracket.matches && bracket.matches[r] && bracket.matches[r][m]) || emptyMatch();
-      list.push({ r, m, roundLabel, a, b, match, isBye: !a || !b || a.bye || b.bye });
+      const advanced = bracket.rounds[r + 1] && bracket.rounds[r + 1][m];
+      const winner = advanced && (samePlayer(advanced, a) || samePlayer(advanced, b)) ? advanced : null;
+      list.push({ r, m, roundLabel, a, b, match, winner, isBye: !a || !b || a.bye || b.bye });
     }
   }
   return list;

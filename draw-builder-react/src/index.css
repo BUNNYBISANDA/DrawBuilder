@@ -71,6 +71,7 @@ header .spacer{flex:1}
 .sched-table tr.sched-bye{color:var(--ink-3)}
 .sched-table .vs{margin:0 6px;color:var(--ink-3);font-size:11px}
 .sched-table .tbd{color:var(--ink-3);font-style:italic}
+.sched-table .sched-winner{font-weight:700;color:var(--win-border, #4C7A3E)}
 .sched-input{border:1.5px solid var(--line);border-radius:8px;padding:5px 8px;font-family:inherit;font-size:12.5px;width:100%;min-width:100px}
 .sched-input:focus{outline:none;border-color:var(--court-soft)}
 .set-scores{display:flex;gap:8px}

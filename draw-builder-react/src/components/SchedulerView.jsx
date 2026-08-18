@@ -51,10 +51,11 @@ export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false
             <th>Players</th>
             <th>Status</th>
             <th>Score{readOnly ? '' : ' (best of 3)'}</th>
+            <th>Winner</th>
           </tr>
         </thead>
         <tbody>
-          {matches.map(({ r, m, roundLabel, a, b, match, isBye }) => (
+          {matches.map(({ r, m, roundLabel, a, b, match, winner, isBye }) => (
             <tr key={`${r}-${m}`} className={isBye ? 'sched-bye' : ''}>
               <td>{roundLabel}</td>
               <td>
@@ -63,11 +64,12 @@ export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false
                 {b ? displayPlayerName(b) : <span className="tbd">TBD</span>}
               </td>
               {isBye ? (
-                <td colSpan={2} className="tbd">— BYE, no match to schedule —</td>
+                <td colSpan={3} className="tbd">— BYE, no match to schedule —</td>
               ) : readOnly ? (
                 <>
                   <td>{STATUS_LABEL[match.status] || match.status}</td>
                   <td>{formatSets(match.sets)}</td>
+                  <td className="sched-winner">{winner ? displayPlayerName(winner) : <span className="tbd">—</span>}</td>
                 </>
               ) : (
                 <>
@@ -83,6 +85,7 @@ export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false
                   <td>
                     <SetScoreInputs sets={match.sets} onChange={(sets) => onUpdateMatch(r, m, { sets })} />
                   </td>
+                  <td className="sched-winner">{winner ? displayPlayerName(winner) : <span className="tbd">—</span>}</td>
                 </>
               )}
             </tr>
