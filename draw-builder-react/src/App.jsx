@@ -35,12 +35,48 @@ export default function App() {
   const [searchFocus, setSearchFocus] = useState(0);
   const [eventModal, setEventModal] = useState(null); // null | 'add' | eventIndex (number) for edit
   const [tournamentId, setTournamentId] = useState(null);
-  const [syncStatus, setSyncStatus] = useState(supabaseEnabled ? 'connecting' : 'local'); // 'local' | 'connecting' | 'synced' | 'error'
+  const [syncStatus, setSyncStatus] = useState(supabaseEnabled ? 'connecting' : 'local'); // 'local' | 'connecting' | 'synced' | 'offline' | 'error'
   const canvasRef = useRef(null);
   const skipNextSave = useRef(false);
   const saveTimer = useRef(null);
+  const retryTimer = useRef(null);
+  // Local edits that haven't reached the server yet (dropped connection, failed
+  // request, ...). Every change is written to localStorage first regardless —
+  // this flag just tracks whether the cloud copy still needs to catch up.
+  const pendingSyncRef = useRef(!!saved?.pendingSync);
+  const eventsRef = useRef(events);
+  const activeRef = useRef(active);
+  useEffect(() => { eventsRef.current = events; activeRef.current = active; }, [events, active]);
 
   const event = ensureEventShape(events[active] || DEFAULT_EVENTS[0]);
+
+  function scheduleRetry(id) {
+    if (retryTimer.current) return;
+    retryTimer.current = setTimeout(() => {
+      retryTimer.current = null;
+      if (!pendingSyncRef.current) return;
+      pushToRemote(id, { events: eventsRef.current, active: activeRef.current });
+    }, 8000);
+  }
+
+  // Pushes to Supabase and, whatever happens, keeps localStorage as the
+  // source of truth so a dropped connection never loses an edit — it just
+  // waits (with retries) until the push finally goes through.
+  async function pushToRemote(id, state) {
+    try {
+      await saveTournament(id, state);
+      pendingSyncRef.current = false;
+      saveState({ events: state.events, active: state.active, pendingSync: false, tournamentId: id });
+      setSyncStatus('synced');
+      if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
+    } catch (err) {
+      console.error(err);
+      pendingSyncRef.current = true;
+      saveState({ events: state.events, active: state.active, pendingSync: true, tournamentId: id });
+      setSyncStatus(navigator.onLine ? 'error' : 'offline');
+      scheduleRetry(id);
+    }
+  }
 
   // One-time: join the tournament named in the URL, or start a new one.
   useEffect(() => {
@@ -49,13 +85,30 @@ export default function App() {
     (async () => {
       try {
         const urlId = getTournamentIdFromUrl();
-        if (urlId) {
-          const remote = await loadTournament(urlId);
+        // Fall back to the last tournament we touched on this device if the
+        // URL lost its ?t= param (e.g. someone bookmarked the bare domain) —
+        // otherwise we'd silently spin up a brand new, empty tournament.
+        const knownId = urlId || saved?.tournamentId || null;
+
+        if (knownId && pendingSyncRef.current) {
+          // We have local edits that never made it to the server last time —
+          // push them up instead of pulling remote, which could still be
+          // missing those edits and would overwrite them on the way in.
+          if (!urlId) setTournamentIdInUrl(knownId);
+          setTournamentId(knownId);
+          setSyncStatus(navigator.onLine ? 'connecting' : 'offline');
+          await pushToRemote(knownId, { events: eventsRef.current, active: activeRef.current });
+          return;
+        }
+
+        if (knownId) {
+          const remote = await loadTournament(knownId);
           if (remote) {
             if (cancelled) return;
             setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
             setActive(remote.active || 0);
-            setTournamentId(urlId);
+            setTournamentId(knownId);
+            if (!urlId) setTournamentIdInUrl(knownId);
             setSyncStatus('synced');
             return;
           }
@@ -65,7 +118,7 @@ export default function App() {
         if (!cancelled) { setTournamentId(id); setSyncStatus('synced'); }
       } catch (err) {
         console.error(err);
-        if (!cancelled) setSyncStatus('error');
+        if (!cancelled) setSyncStatus(navigator.onLine ? 'error' : 'offline');
       }
     })();
     return () => { cancelled = true; };
@@ -76,23 +129,39 @@ export default function App() {
   useEffect(() => {
     if (!supabaseEnabled || !tournamentId) return;
     return subscribeTournament(tournamentId, (remote) => {
+      // Don't let an incoming remote snapshot stomp local edits we haven't
+      // managed to push yet — our pending push will reconcile once it lands.
+      if (pendingSyncRef.current) return;
       skipNextSave.current = true;
       setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
       setActive(remote.active || 0);
     });
   }, [tournamentId]);
 
+  // Retry the moment the browser regains connectivity, instead of waiting
+  // for the next edit (which may never come if the organizer just walks away).
   useEffect(() => {
-    saveState({ events, active });
+    if (!supabaseEnabled) return;
+    function onOnline() {
+      if (pendingSyncRef.current && tournamentId) {
+        pushToRemote(tournamentId, { events: eventsRef.current, active: activeRef.current });
+      }
+    }
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [tournamentId]);
+
+  useEffect(() => {
+    // Local save always happens first and immediately — this is the copy
+    // that survives a dropped connection or a refresh mid-outage.
+    saveState({ events, active, pendingSync: pendingSyncRef.current, tournamentId });
 
     if (!supabaseEnabled || !tournamentId) return;
     if (skipNextSave.current) { skipNextSave.current = false; return; }
 
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveTournament(tournamentId, { events, active })
-        .then(() => setSyncStatus('synced'))
-        .catch((err) => { console.error(err); setSyncStatus('error'); });
+      pushToRemote(tournamentId, { events, active });
     }, 600);
     return () => clearTimeout(saveTimer.current);
   }, [events, active, tournamentId]);

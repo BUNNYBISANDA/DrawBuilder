@@ -25,7 +25,8 @@ header .spacer{flex:1}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#C9B79C;flex:none}
 .sync-dot.sync-synced{background:#5FAE64}
 .sync-dot.sync-connecting{background:#D9B34E;animation:pulse 1.2s ease-in-out infinite}
-.sync-dot.sync-error{background:#C0392B}
+.sync-dot.sync-error{background:#C0392B;animation:pulse 1.2s ease-in-out infinite}
+.sync-dot.sync-offline{background:#D9B34E;animation:pulse 1.2s ease-in-out infinite}
 .sync-dot.sync-local{background:#C9B79C}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .evt-picker{position:relative;display:flex;align-items:center;gap:6px}
