@@ -54,6 +54,15 @@ export default function App() {
   const dirtyIndexesRef = useRef(
     saved?.pendingSync && saved?.events?.length ? new Set(saved.events.map((_, i) => i)) : new Set()
   );
+  // Indices currently being typed into (focused, not yet blurred/committed).
+  // Separate from dirtyIndexesRef: a field can be "being edited" without any
+  // change having landed yet (e.g. just clicked in, or typed then undid it).
+  // We still need to hold off remote overwrites the moment editing starts —
+  // waiting for the first onChange would let an in-flight remote update land
+  // between focus and that first keystroke and wipe out what's being typed.
+  const editingIndexesRef = useRef(new Set());
+  function beginFieldEdit() { editingIndexesRef.current.add(activeRef.current); }
+  function endFieldEdit() { editingIndexesRef.current.delete(activeRef.current); }
   const eventsRef = useRef(events);
   const activeRef = useRef(active);
   useEffect(() => { eventsRef.current = events; activeRef.current = active; }, [events, active]);
@@ -186,7 +195,12 @@ export default function App() {
     if (!supabaseEnabled || !tournamentId) return;
     return subscribeTournament(tournamentId, (remote) => {
       const fromSelf = remote.editorId && remote.editorId === editorIdRef.current;
-      const hadDirty = dirtyIndexesRef.current.size > 0;
+      // "Ours to protect" covers both unsynced changes and fields currently
+      // being typed into — otherwise a remote update landing mid-keystroke
+      // (before the field is blurred/committed) would wipe it out even
+      // though it was never actually in conflict.
+      const isProtected = (i) => dirtyIndexesRef.current.has(i) || editingIndexesRef.current.has(i);
+      const hadDirty = dirtyIndexesRef.current.size > 0 || editingIndexesRef.current.size > 0;
       const remoteEvents = remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS;
       const structural = remoteEvents.length !== eventsRef.current.length;
 
@@ -215,11 +229,12 @@ export default function App() {
           // pending push resolves, per the conflict notice above.
           return prevLocal;
         }
-        // Merge per event: keep our own not-yet-synced event(s) exactly as
-        // they are locally, take theirs for everything else. This is what
-        // lets two organizers edit two different events at once without
-        // either side's screen jumping or losing work.
-        return prevLocal.map((localEv, i) => (dirtyIndexesRef.current.has(i) ? localEv : remoteEvents[i]));
+        // Merge per event: keep our own not-yet-synced (or actively being
+        // typed into) event(s) exactly as they are locally, take theirs for
+        // everything else. This is what lets two organizers edit two
+        // different events at once without either side's screen jumping or
+        // losing work.
+        return prevLocal.map((localEv, i) => (isProtected(i) ? localEv : remoteEvents[i]));
       });
       // Never adopt someone else's tab selection — switching events on one
       // laptop shouldn't switch the view on everyone else's.
@@ -526,6 +541,8 @@ export default function App() {
             onUpdateEvent={updateEvent}
             onGenerate={generate}
             onExportPdf={doExportPdf}
+            onFieldFocus={beginFieldEdit}
+            onFieldBlur={endFieldEdit}
           />
           {genStatus.msg ? <div className={'status ' + genStatus.cls} style={{ padding: '0 18px 12px' }}>{genStatus.msg}</div> : null}
         </aside>
@@ -619,6 +636,8 @@ export default function App() {
                 onSwapClick={handleSwapClick}
                 onRenameCell={renameCell}
                 onClearAdvance={clearAdvance}
+                onFieldFocus={beginFieldEdit}
+                onFieldBlur={endFieldEdit}
                 canvasRef={canvasRef}
                 searchTerm={searchTerm}
                 searchFocus={searchFocus}

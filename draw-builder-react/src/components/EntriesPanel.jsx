@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { normalizeName, parseSeedLines, parseLineNumbers, parseSeedEntry, renameSeedByName } from '../utils/names';
 import { selectedDrawSize, propagateRename } from '../utils/bracket';
 
-export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExportPdf }) {
+export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExportPdf, onFieldFocus, onFieldBlur }) {
   const players = event.players;
   const [seedFocused, setSeedFocused] = useState(false);
   const [byesFocused, setByesFocused] = useState(false);
@@ -122,7 +122,12 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
                   checked={present.includes(p)}
                   onChange={() => togglePresent(p)}
                 />
-                <input defaultValue={p} key={p + i} onBlur={(e) => renameEntry(i, e.target.value)} />
+                <input
+                  defaultValue={p}
+                  key={p + i}
+                  onFocus={onFieldFocus}
+                  onBlur={(e) => { renameEntry(i, e.target.value); onFieldBlur?.(); }}
+                />
                 <button className="mv" title="Move up entry number" onClick={() => moveEntry(i, -1)}>▲</button>
                 <button className="mv" title="Move down entry number" onClick={() => moveEntry(i, 1)}>▼</button>
                 <button className="del" title="Remove" onClick={() => removeEntry(i)}>✕</button>

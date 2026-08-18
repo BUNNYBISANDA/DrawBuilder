@@ -5,6 +5,7 @@ import { displayPlayerName } from '../utils/bracket';
 export default function BracketView({
   bracket, moveByes, swapSlot, zoom,
   onAdvance, onSwapClick, onRenameCell, onClearAdvance, canvasRef,
+  onFieldFocus, onFieldBlur,
   readOnly = false,
   searchTerm = '', searchFocus = 0,
   present = [],
@@ -114,9 +115,11 @@ export default function BracketView({
                   className="nm"
                   contentEditable={editable}
                   suppressContentEditableWarning
+                  onFocus={() => { if (editable) onFieldFocus?.(); }}
                   onBlur={(e) => {
                     if (!editable) return;
                     onRenameCell(cell, e.target.textContent);
+                    onFieldBlur?.();
                   }}
                   onKeyDown={(e) => {
                     if (editable && e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
