@@ -10,7 +10,7 @@ export default function MatchProgress({ bracket }) {
   real.forEach(({ match }) => { counts[match.status] = (counts[match.status] || 0) + 1; });
 
   const done = counts.completed + counts.walkover + counts.retired;
-  const toPlay = counts.scheduled + counts['in-progress'];
+  const toPlay = counts.scheduled;
   const pct = Math.round((done / total) * 100);
 
   const segments = [
@@ -35,7 +35,7 @@ export default function MatchProgress({ bracket }) {
       <div className="mp-legend">
         <span className="mp-chip mp-completed"><i /> Completed <b>{counts.completed}</b></span>
         <span className="mp-chip mp-toplay"><i /> To play <b>{toPlay}</b></span>
-        {counts['in-progress'] > 0 && <span className="mp-chip mp-inprogress"><i /> In progress <b>{counts['in-progress']}</b></span>}
+        <span className="mp-chip mp-inprogress"><i /> In progress <b>{counts['in-progress']}</b></span>
         {counts.walkover > 0 && <span className="mp-chip mp-walkover"><i /> Walkover <b>{counts.walkover}</b></span>}
         {counts.retired > 0 && <span className="mp-chip mp-retired"><i /> Retired <b>{counts.retired}</b></span>}
       </div>
