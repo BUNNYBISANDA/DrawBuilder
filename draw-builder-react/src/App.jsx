@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import EventTabs from './components/EventTabs';
+import Footer from './components/Footer';
 import EventModal from './components/EventModal';
 import ShareBar from './components/ShareBar';
 import ImportPanel from './components/ImportPanel';
@@ -447,6 +448,7 @@ export default function App() {
           )}
         </section>
       </main>
+      <Footer />
     </>
   );
 }

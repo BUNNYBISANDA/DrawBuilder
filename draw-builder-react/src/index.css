@@ -198,6 +198,8 @@ select:focus{outline:none;border-color:var(--court-soft)}
 .public-header h1{font-size:19px}
 .public-stage{padding-top:14px}
 .public-message{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:8px;color:var(--ink-2)}
+
+.app-footer{text-align:center;padding:14px 20px;font-size:12px;color:var(--ink-3);border-top:1px solid var(--line);background:var(--card)}
 .public-message h2{font-size:19px;color:var(--ink)}
 .public-message p{max-width:360px;font-size:13.5px;line-height:1.5}
 

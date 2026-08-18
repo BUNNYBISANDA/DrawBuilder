@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import EventTabs from './components/EventTabs';
+import Footer from './components/Footer';
 import BracketView from './components/BracketView';
 import SchedulerView from './components/SchedulerView';
 import DrawSearch from './components/DrawSearch';
@@ -47,18 +48,24 @@ export default function PublicView() {
 
   if (status === 'disabled') {
     return (
-      <div className="public-message">
-        <h2>Live viewing isn't available</h2>
-        <p>This link is missing a tournament, or live sync isn't set up. Ask the organizer for the correct "watch" link.</p>
-      </div>
+      <>
+        <div className="public-message">
+          <h2>Live viewing isn't available</h2>
+          <p>This link is missing a tournament, or live sync isn't set up. Ask the organizer for the correct "watch" link.</p>
+        </div>
+        <Footer />
+      </>
     );
   }
   if (status === 'not-found') {
     return (
-      <div className="public-message">
-        <h2>Tournament not found</h2>
-        <p>This link doesn't point to a tournament that exists. Ask the organizer to re-share the current link.</p>
-      </div>
+      <>
+        <div className="public-message">
+          <h2>Tournament not found</h2>
+          <p>This link doesn't point to a tournament that exists. Ask the organizer to re-share the current link.</p>
+        </div>
+        <Footer />
+      </>
     );
   }
   if (status === 'loading') {
@@ -76,10 +83,13 @@ export default function PublicView() {
 
   if (!visibleEvents.length) {
     return (
-      <div className="public-message">
-        <h2>No draws to show yet</h2>
-        <p>The organizer hasn't revealed any draws for this tournament yet. Check back soon.</p>
-      </div>
+      <>
+        <div className="public-message">
+          <h2>No draws to show yet</h2>
+          <p>The organizer hasn't revealed any draws for this tournament yet. Check back soon.</p>
+        </div>
+        <Footer />
+      </>
     );
   }
 
@@ -150,6 +160,7 @@ export default function PublicView() {
           </>
         )}
       </section>
+      <Footer />
     </>
   );
 }
