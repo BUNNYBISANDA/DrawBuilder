@@ -429,6 +429,7 @@ export default function App() {
                 canvasRef={canvasRef}
                 searchTerm={searchTerm}
                 searchFocus={searchFocus}
+                present={event.present}
               />
               <p className="footer-note">
                 {moveByes

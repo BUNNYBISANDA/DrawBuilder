@@ -7,6 +7,7 @@ export default function BracketView({
   onAdvance, onSwapClick, onRenameCell, onClearAdvance, canvasRef,
   readOnly = false,
   searchTerm = '', searchFocus = 0,
+  present = [],
 }) {
   const scalerRef = useRef(null);
   const viewportRef = useRef(null);
@@ -82,13 +83,15 @@ export default function BracketView({
             const isMatch = !!(query && cell && !cell.bye && cell.name && cell.name.toLowerCase().includes(query));
             const myMatchIndex = isMatch ? ++matchCounter : -1;
             const isCurrentMatch = isMatch && myMatchIndex === searchFocus;
+            const isPresent = !!(cell && !cell.bye && present.includes(cell.name));
             const cls = 'slot'
               + (cell ? (cell.bye ? ' bye' : ' filled') : '')
               + (isChamp ? ' champ winner' : '')
               + (swapable ? ' swapable' : '')
               + (selected ? ' swap-selected' : '')
               + (isMatch ? ' search-match' : '')
-              + (isCurrentMatch ? ' search-current' : '');
+              + (isCurrentMatch ? ' search-current' : '')
+              + (isPresent ? ' present' : '');
             const editable = !readOnly && r === 0 && cell && !cell.bye && !moveByes;
             return (
               <div

@@ -142,6 +142,7 @@ export default function PublicView() {
                 readOnly
                 searchTerm={searchTerm}
                 searchFocus={searchFocus}
+                present={event.present}
               />
             ) : (
               <SchedulerView bracket={event.bracket} readOnly />
