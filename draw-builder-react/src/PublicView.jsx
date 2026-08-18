@@ -4,6 +4,7 @@ import Footer from './components/Footer';
 import BracketView from './components/BracketView';
 import SchedulerView from './components/SchedulerView';
 import DrawSearch from './components/DrawSearch';
+import MatchProgress from './components/MatchProgress';
 import { supabaseEnabled } from './utils/supabase';
 import { getTournamentIdFromUrl, loadTournament, subscribeTournament } from './utils/tournamentSync';
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
@@ -118,6 +119,7 @@ export default function PublicView() {
           </div>
         ) : (
           <>
+            <MatchProgress bracket={event.bracket} />
             <div className="stage-top">
               <span className="chip">Draw size <b>{event.bracket.size}</b> · entries <b>{event.bracket.entrants}</b></span>
               <span className="chip">{byes ? <>Byes <b>{byes}</b></> : 'No byes'}</span>

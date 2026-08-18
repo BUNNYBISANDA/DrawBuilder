@@ -8,6 +8,7 @@ import EntriesPanel from './components/EntriesPanel';
 import BracketView from './components/BracketView';
 import SchedulerView from './components/SchedulerView';
 import DrawSearch from './components/DrawSearch';
+import MatchProgress from './components/MatchProgress';
 import { normalizeName, updateSeedName } from './utils/names';
 import { buildBracket, samePlayer, clearDownstream, propagateRename, ensureMatches, emptyMatch, countSearchMatches } from './utils/bracket';
 import { exportBracketPdf } from './utils/pdfExport';
@@ -347,6 +348,7 @@ export default function App() {
         </aside>
 
         <section className="stage">
+          {event.bracket ? <MatchProgress bracket={event.bracket} /> : null}
           <div className="stage-top">
             <h2>{event.name} draw</h2>
             <button
