@@ -92,16 +92,37 @@ export default function App() {
   // source of truth so a dropped connection never loses an edit — it just
   // waits (with retries) until the push finally goes through.
   async function pushToRemote(id, state) {
-    const payload = { ...state, editor: editorName || 'An organizer', editorId: editorIdRef.current, editedAt: Date.now() };
     // Snapshot which events were dirty as of this push — if a new edit lands
     // while the request is in flight, it stays marked dirty even after this
     // push succeeds, instead of being mistaken for already-synced.
     const dirtySnapshot = new Set(dirtyIndexesRef.current);
     try {
+      // Re-fetch the freshest server copy right before writing, and only
+      // overwrite the event(s) we actually changed ourselves. Without this,
+      // a stale local copy of an event we never touched (e.g. a realtime
+      // update we missed while this tab was backgrounded) would silently
+      // revert someone else's edit to it the next time we save anything.
+      let baseEvents = state.events;
+      try {
+        const latest = await loadTournament(id);
+        const latestEvents = latest?.events?.length ? latest.events.map(ensureEventShape) : null;
+        if (latestEvents && latestEvents.length === state.events.length) {
+          baseEvents = latestEvents.map((ev, i) => (dirtySnapshot.has(i) ? state.events[i] : ev));
+        }
+      } catch {
+        // Reconciling read failed — fall back to writing our own copy rather
+        // than giving up on the save entirely.
+      }
+
+      const payload = { events: baseEvents, active: state.active, editor: editorName || 'An organizer', editorId: editorIdRef.current, editedAt: Date.now() };
       await saveTournament(id, payload);
       dirtySnapshot.forEach((i) => dirtyIndexesRef.current.delete(i));
       pendingSyncRef.current = dirtyIndexesRef.current.size > 0;
-      saveState({ events: state.events, active: state.active, pendingSync: pendingSyncRef.current, tournamentId: id });
+      if (baseEvents !== state.events) {
+        skipNextSave.current = true;
+        setEvents(baseEvents);
+      }
+      saveState({ events: baseEvents, active: state.active, pendingSync: pendingSyncRef.current, tournamentId: id });
       setSyncStatus('synced');
       if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
     } catch (err) {
