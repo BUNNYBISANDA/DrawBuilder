@@ -49,7 +49,6 @@ export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false
           <tr>
             <th>Round</th>
             <th>Players</th>
-            <th>Court</th>
             <th>Status</th>
             <th>Score{readOnly ? '' : ' (best of 3)'}</th>
           </tr>
@@ -64,23 +63,14 @@ export default function SchedulerView({ bracket, onUpdateMatch, readOnly = false
                 {b ? displayPlayerName(b) : <span className="tbd">TBD</span>}
               </td>
               {isBye ? (
-                <td colSpan={3} className="tbd">— BYE, no match to schedule —</td>
+                <td colSpan={2} className="tbd">— BYE, no match to schedule —</td>
               ) : readOnly ? (
                 <>
-                  <td>{match.court || '—'}</td>
                   <td>{STATUS_LABEL[match.status] || match.status}</td>
                   <td>{formatSets(match.sets)}</td>
                 </>
               ) : (
                 <>
-                  <td>
-                    <input
-                      className="sched-input"
-                      placeholder="e.g. Court 3"
-                      value={match.court}
-                      onChange={(e) => onUpdateMatch(r, m, { court: e.target.value })}
-                    />
-                  </td>
                   <td>
                     <select
                       className="sched-input"
