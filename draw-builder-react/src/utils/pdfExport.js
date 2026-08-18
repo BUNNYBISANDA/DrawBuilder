@@ -108,8 +108,8 @@ export async function exportBracketPdf(canvasEl, bracket, fileBaseName, onStatus
 
     const slotsPerPage = 32;
     const pages = Math.max(1, Math.ceil(bracket.size / slotsPerPage));
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-    const margin = 22.7;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
+    const margin = 24;
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
     const boxWidth = pdfWidth - margin * 2;
@@ -122,7 +122,7 @@ export async function exportBracketPdf(canvasEl, bracket, fileBaseName, onStatus
 
       const imageCanvas = await html2canvas(slice.page, {
         backgroundColor: '#ffffff',
-        scale: 2,
+        scale: 3,
         useCORS: true,
         logging: false,
         width: layout.width,
@@ -132,7 +132,7 @@ export async function exportBracketPdf(canvasEl, bracket, fileBaseName, onStatus
       });
       slice.host.remove();
 
-      if (pageIndex > 0) pdf.addPage('a4', 'landscape');
+      if (pageIndex > 0) pdf.addPage('a3', 'landscape');
 
       const imageData = imageCanvas.toDataURL('image/png');
       const fit = Math.min(boxWidth / imageCanvas.width, boxHeight / imageCanvas.height);
