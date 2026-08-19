@@ -8,6 +8,7 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
   const [byesFocused, setByesFocused] = useState(false);
   const [seedDraft, setSeedDraft] = useState(null);
   const [byesDraft, setByesDraft] = useState(null);
+  const [entryQuery, setEntryQuery] = useState('');
 
   function setPlayers(next) {
     onUpdateEvent((ev) => ({ ...ev, players: next, bracket: null }));
@@ -99,20 +100,50 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
     return { msg: `${byes.length} custom BYE line${byes.length === 1 ? '' : 's'} set. ${byeCount - byes.length} BYE${byeCount - byes.length === 1 ? '' : 's'} will auto-fill.`, cls: '' };
   }, [event.customByes, event.drawSize, players]);
 
+  const query = entryQuery.trim().toLowerCase();
+  // One free-text search box covers first name, last name and school code
+  // in one go, since entries are stored as a single string like
+  // "Bihara Jayadevi (MC)" — a plain substring match against the whole
+  // name matches on any of those parts.
+  const visibleEntries = players
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => !query || p.toLowerCase().includes(query));
+
   return (
     <>
       <section className="panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <h2><span className="n">2</span> Entries <span style={{ fontWeight: 400, fontSize: '12.5px', color: 'var(--ink-2)' }}>- fills the draw in this order</span></h2>
         <div className="seedwrap">
           <div className="seedhead">
-            <span>{players.length} entries · {present.length} checked in</span>
+            <span>
+              {query ? `${visibleEntries.length} of ${players.length} entries` : `${players.length} entries`} · {present.length} checked in
+            </span>
             <span className="row" style={{ gap: 6 }}>
               <button className="btn small secondary" title="Randomize the entry order" onClick={shuffle}>Shuffle</button>
               <button className="btn small secondary" onClick={addOne}>+ Add</button>
             </span>
           </div>
+          <div className="entry-search">
+            <input
+              type="text"
+              className="entry-search-input"
+              placeholder="Search by name or school code…"
+              value={entryQuery}
+              onChange={(e) => setEntryQuery(e.target.value)}
+            />
+            {entryQuery ? (
+              <button
+                type="button"
+                className="entry-search-clear"
+                title="Clear search"
+                onClick={() => setEntryQuery('')}
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
           <div className="seedlist">
-            {players.map((p, i) => (
+            {visibleEntries.map(({ p, i }) => (
               <div className={'seed-row' + (present.includes(p) ? ' present' : '')} key={i}>
                 <span className="num">{i + 1}</span>
                 <input
@@ -133,6 +164,9 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
                 <button className="del" title="Remove" onClick={() => removeEntry(i)}>✕</button>
               </div>
             ))}
+            {query && !visibleEntries.length ? (
+              <div className="entry-search-empty">No entries match "{entryQuery.trim()}".</div>
+            ) : null}
           </div>
         </div>
 
