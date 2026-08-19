@@ -9,6 +9,7 @@ import BracketView from './components/BracketView';
 import SchedulerView from './components/SchedulerView';
 import DrawSearch from './components/DrawSearch';
 import MatchProgress from './components/MatchProgress';
+import SchoolStandings from './components/SchoolStandings';
 import { normalizeName, updateSeedName } from './utils/names';
 import { buildBracket, samePlayer, clearDownstream, propagateRename, ensureMatches, emptyMatch, countSearchMatches } from './utils/bracket';
 import { exportBracketPdf } from './utils/pdfExport';
@@ -493,6 +494,8 @@ export default function App() {
           }}
         />
       </header>
+
+      <SchoolStandings brackets={events.map((ev) => ev.bracket)} />
 
       {notice && (
         <div className={'edit-notice ' + (notice.kind === 'conflict' ? 'edit-notice-conflict' : 'edit-notice-info')}>

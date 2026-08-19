@@ -2,6 +2,16 @@ export function cleanSeedName(name) {
   return name.replace(/\s*\(\d+\)\s*$/, '').trim();
 }
 
+// Entries are stored as "Player Name (CODE)", e.g. "Bihara Jayadevi (MC)" —
+// the trailing parenthetical is the player's school code. Seed numbers use
+// the same "(N)" shape, so only match when the parenthetical isn't all digits.
+export function schoolCode(name) {
+  const m = String(name || '').match(/\(([^)]+)\)\s*$/);
+  if (!m) return null;
+  const code = m[1].trim();
+  return /^\d+$/.test(code) ? null : code;
+}
+
 export function normalizeName(name) {
   return cleanSeedName(String(name || '')).toLowerCase().replace(/\s+/g, ' ');
 }
