@@ -495,7 +495,7 @@ export default function App() {
         />
       </header>
 
-      <SchoolStandings brackets={events.map((ev) => ev.bracket)} />
+      <SchoolStandings brackets={event.bracket} />
 
       {notice && (
         <div className={'edit-notice ' + (notice.kind === 'conflict' ? 'edit-notice-conflict' : 'edit-notice-info')}>

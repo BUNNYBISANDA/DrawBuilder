@@ -155,6 +155,7 @@ select:focus{outline:none;border-color:var(--court-soft)}
 .school-bar{background:var(--cork-soft);border-bottom:1px solid var(--cork)}
 .school-bar-summary{display:flex;align-items:center;gap:14px;width:100%;padding:8px 22px;border:none;background:none;cursor:pointer;font-family:inherit;text-align:left}
 .school-bar-label{flex:none;font-size:12.5px;font-weight:700;color:#6E4A12;white-space:nowrap}
+.school-bar-scope{font-weight:400;color:var(--ink-2);margin-left:2px}
 .school-bar-chips{flex:1;display:flex;align-items:center;gap:8px;overflow-x:auto;min-width:0}
 .school-chip{flex:none;display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--cork);border-radius:999px;padding:3px 10px;font-size:12.5px;color:var(--ink)}
 .school-chip-rank{font-size:11px}

@@ -3,9 +3,9 @@ import { computeSchoolStandings } from '../utils/standings';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-export default function SchoolStandings({ brackets }) {
+export default function SchoolStandings({ bracket }) {
   const [expanded, setExpanded] = useState(false);
-  const standings = useMemo(() => computeSchoolStandings(brackets), [brackets]);
+  const standings = useMemo(() => computeSchoolStandings(bracket), [bracket]);
   if (!standings.length) return null;
 
   const totalWins = standings.reduce((sum, s) => sum + s.wins, 0);
@@ -20,7 +20,7 @@ export default function SchoolStandings({ brackets }) {
         onClick={() => setExpanded((v) => !v)}
         title={expanded ? 'Collapse school standings' : 'Show full school standings'}
       >
-        <span className="school-bar-label">🏫 School standings</span>
+        <span className="school-bar-label">🏫 School standings <span className="school-bar-scope">this draw</span></span>
         <span className="school-bar-chips">
           {top.map((s, i) => (
             <span className="school-chip" key={s.code}>
@@ -62,7 +62,7 @@ export default function SchoolStandings({ brackets }) {
               })}
             </tbody>
           </table>
-          <div className="school-bar-note">{totalWins} decided match{totalWins === 1 ? '' : 'es'} counted across all draws.</div>
+          <div className="school-bar-note">{totalWins} decided match{totalWins === 1 ? '' : 'es'} counted in this draw. Switch draws above to see another event's standings.</div>
         </div>
       )}
     </div>
