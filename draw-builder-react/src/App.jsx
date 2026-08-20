@@ -21,11 +21,14 @@ import {
 } from './utils/tournamentSync';
 import { getEditorId, getEditorName, setEditorName } from './utils/editorIdentity';
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
+import { ensureNotices } from './utils/notices';
+import NoticeBoard from './components/NoticeBoard';
 
 export default function App() {
   const saved = loadState();
   const [events, setEvents] = useState(() => (saved?.events?.length ? saved.events.map(ensureEventShape) : DEFAULT_EVENTS));
   const [active, setActive] = useState(saved?.active || 0);
+  const [notices, setNotices] = useState(() => ensureNotices(saved?.notices));
   const [zoom, setZoom] = useState(1);
   const [moveByes, setMoveByes] = useState(false);
   const [swapSlot, setSwapSlot] = useState(null);
@@ -55,6 +58,9 @@ export default function App() {
   const dirtyIndexesRef = useRef(
     saved?.pendingSync && saved?.events?.length ? new Set(saved.events.map((_, i) => i)) : new Set()
   );
+  // Notices aren't per-event, so they get one flag rather than a per-index
+  // set — true whenever the local list has an edit not yet confirmed synced.
+  const noticesDirtyRef = useRef(!!saved?.pendingSync);
   // Indices currently being typed into (focused, not yet blurred/committed).
   // Separate from dirtyIndexesRef: a field can be "being edited" without any
   // change having landed yet (e.g. just clicked in, or typed then undid it).
@@ -66,7 +72,8 @@ export default function App() {
   function endFieldEdit() { editingIndexesRef.current.delete(activeRef.current); }
   const eventsRef = useRef(events);
   const activeRef = useRef(active);
-  useEffect(() => { eventsRef.current = events; activeRef.current = active; }, [events, active]);
+  const noticesRef = useRef(notices);
+  useEffect(() => { eventsRef.current = events; activeRef.current = active; noticesRef.current = notices; }, [events, active, notices]);
 
   // Who's editing — a stable per-browser identity, used to tell "my own edit
   // echoing back" apart from a real change from someone else, and to show
@@ -94,7 +101,7 @@ export default function App() {
     retryTimer.current = setTimeout(() => {
       retryTimer.current = null;
       if (!pendingSyncRef.current) return;
-      pushToRemote(id, { events: eventsRef.current, active: activeRef.current });
+      pushToRemote(id, { events: eventsRef.current, active: activeRef.current, notices: noticesRef.current });
     }, 8000);
   }
 
@@ -106,6 +113,7 @@ export default function App() {
     // while the request is in flight, it stays marked dirty even after this
     // push succeeds, instead of being mistaken for already-synced.
     const dirtySnapshot = new Set(dirtyIndexesRef.current);
+    const noticesWereDirty = noticesDirtyRef.current;
     try {
       // Re-fetch the freshest server copy right before writing, and only
       // overwrite the event(s) we actually changed ourselves. Without this,
@@ -113,32 +121,41 @@ export default function App() {
       // update we missed while this tab was backgrounded) would silently
       // revert someone else's edit to it the next time we save anything.
       let baseEvents = state.events;
+      let baseNotices = state.notices;
       try {
         const latest = await loadTournament(id);
         const latestEvents = latest?.events?.length ? latest.events.map(ensureEventShape) : null;
         if (latestEvents && latestEvents.length === state.events.length) {
           baseEvents = latestEvents.map((ev, i) => (dirtySnapshot.has(i) ? state.events[i] : ev));
         }
+        // Notices aren't per-event, so there's nothing to merge by index —
+        // take the freshest remote list unless we have an unsynced local edit.
+        if (!noticesWereDirty) baseNotices = ensureNotices(latest?.notices);
       } catch {
         // Reconciling read failed — fall back to writing our own copy rather
         // than giving up on the save entirely.
       }
 
-      const payload = { events: baseEvents, active: state.active, editor: editorName || 'An organizer', editorId: editorIdRef.current, editedAt: Date.now() };
+      const payload = { events: baseEvents, active: state.active, notices: baseNotices, editor: editorName || 'An organizer', editorId: editorIdRef.current, editedAt: Date.now() };
       await saveTournament(id, payload);
       dirtySnapshot.forEach((i) => dirtyIndexesRef.current.delete(i));
       pendingSyncRef.current = dirtyIndexesRef.current.size > 0;
+      if (noticesWereDirty) noticesDirtyRef.current = false;
       if (baseEvents !== state.events) {
         skipNextSave.current = true;
         setEvents(baseEvents);
       }
-      saveState({ events: baseEvents, active: state.active, pendingSync: pendingSyncRef.current, tournamentId: id });
+      if (baseNotices !== state.notices) {
+        skipNextSave.current = true;
+        setNotices(baseNotices);
+      }
+      saveState({ events: baseEvents, active: state.active, notices: baseNotices, pendingSync: pendingSyncRef.current, tournamentId: id });
       setSyncStatus('synced');
       if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
     } catch (err) {
       console.error(err);
       pendingSyncRef.current = true;
-      saveState({ events: state.events, active: state.active, pendingSync: true, tournamentId: id });
+      saveState({ events: state.events, active: state.active, notices: state.notices, pendingSync: true, tournamentId: id });
       setSyncStatus(navigator.onLine ? 'error' : 'offline');
       scheduleRetry(id);
     }
@@ -163,7 +180,7 @@ export default function App() {
           if (!urlId) setTournamentIdInUrl(knownId);
           setTournamentId(knownId);
           setSyncStatus(navigator.onLine ? 'connecting' : 'offline');
-          await pushToRemote(knownId, { events: eventsRef.current, active: activeRef.current });
+          await pushToRemote(knownId, { events: eventsRef.current, active: activeRef.current, notices: noticesRef.current });
           return;
         }
 
@@ -173,13 +190,14 @@ export default function App() {
             if (cancelled) return;
             setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
             setActive(remote.active || 0);
+            setNotices(ensureNotices(remote.notices));
             setTournamentId(knownId);
             if (!urlId) setTournamentIdInUrl(knownId);
             setSyncStatus('synced');
             return;
           }
         }
-        const id = await createTournament({ events, active });
+        const id = await createTournament({ events, active, notices });
         setTournamentIdInUrl(id);
         if (!cancelled) { setTournamentId(id); setSyncStatus('synced'); }
       } catch (err) {
@@ -204,6 +222,7 @@ export default function App() {
       const hadDirty = dirtyIndexesRef.current.size > 0 || editingIndexesRef.current.size > 0;
       const remoteEvents = remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS;
       const structural = remoteEvents.length !== eventsRef.current.length;
+      const remoteNotices = ensureNotices(remote.notices);
 
       if (!fromSelf) {
         const who = remote.editor || 'Someone';
@@ -237,6 +256,7 @@ export default function App() {
         // losing work.
         return prevLocal.map((localEv, i) => (isProtected(i) ? localEv : remoteEvents[i]));
       });
+      if (!noticesDirtyRef.current) setNotices(remoteNotices);
       // Never adopt someone else's tab selection — switching events on one
       // laptop shouldn't switch the view on everyone else's.
       if (!hadDirty) skipNextSave.current = true;
@@ -255,7 +275,7 @@ export default function App() {
     if (!supabaseEnabled) return;
     function onOnline() {
       if (pendingSyncRef.current && tournamentId) {
-        pushToRemote(tournamentId, { events: eventsRef.current, active: activeRef.current });
+        pushToRemote(tournamentId, { events: eventsRef.current, active: activeRef.current, notices: noticesRef.current });
       }
     }
     window.addEventListener('online', onOnline);
@@ -265,17 +285,22 @@ export default function App() {
   useEffect(() => {
     // Local save always happens first and immediately — this is the copy
     // that survives a dropped connection or a refresh mid-outage.
-    saveState({ events, active, pendingSync: pendingSyncRef.current, tournamentId });
+    saveState({ events, active, notices, pendingSync: pendingSyncRef.current, tournamentId });
 
     if (!supabaseEnabled || !tournamentId) return;
     if (skipNextSave.current) { skipNextSave.current = false; return; }
 
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      pushToRemote(tournamentId, { events, active });
+      pushToRemote(tournamentId, { events, active, notices });
     }, 600);
     return () => clearTimeout(saveTimer.current);
-  }, [events, active, tournamentId]);
+  }, [events, active, notices, tournamentId]);
+
+  function updateNotices(next) {
+    noticesDirtyRef.current = true;
+    setNotices(next);
+  }
 
   function updateEvent(mutator) {
     dirtyIndexesRef.current.add(active);
@@ -495,7 +520,8 @@ export default function App() {
         />
       </header>
 
-      <SchoolStandings brackets={event.bracket} />
+      <NoticeBoard notices={notices} onChange={updateNotices} />
+      <SchoolStandings bracket={event.bracket} />
 
       {notice && (
         <div className={'edit-notice ' + (notice.kind === 'conflict' ? 'edit-notice-conflict' : 'edit-notice-info')}>

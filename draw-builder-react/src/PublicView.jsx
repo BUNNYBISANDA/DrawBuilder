@@ -8,11 +8,14 @@ import MatchProgress from './components/MatchProgress';
 import { supabaseEnabled } from './utils/supabase';
 import { getTournamentIdFromUrl, loadTournament, subscribeTournament } from './utils/tournamentSync';
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
+import { ensureNotices } from './utils/notices';
+import NoticeBoard from './components/NoticeBoard';
 import { countSearchMatches } from './utils/bracket';
 
 export default function PublicView() {
   const [events, setEvents] = useState(DEFAULT_EVENTS);
   const [active, setActive] = useState(0);
+  const [notices, setNotices] = useState([]);
   const [view, setView] = useState('bracket');
   const [zoom, setZoom] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +34,7 @@ export default function PublicView() {
         if (!remote) { setStatus('not-found'); return; }
         setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
         setActive(remote.active || 0);
+        setNotices(ensureNotices(remote.notices));
         setStatus('ready');
       })
       .catch(() => { if (!cancelled) setStatus('not-found'); });
@@ -42,6 +46,7 @@ export default function PublicView() {
     return subscribeTournament(tournamentId, (remote) => {
       setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
       setActive(remote.active || 0);
+      setNotices(ensureNotices(remote.notices));
     });
   }, [tournamentId, status]);
 
@@ -110,6 +115,8 @@ export default function PublicView() {
           readOnly
         />
       </header>
+
+      <NoticeBoard notices={notices} readOnly />
 
       <section className="stage public-stage">
         {!event.bracket ? (
