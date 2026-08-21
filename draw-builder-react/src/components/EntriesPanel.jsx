@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { normalizeName, parseSeedLines, parseLineNumbers, parseSeedEntry, renameSeedByName } from '../utils/names';
 import { selectedDrawSize, propagateRename } from '../utils/bracket';
+import { IconArrowUp, IconArrowDown, IconClose } from './Icon';
 
 export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExportPdf, onFieldFocus, onFieldBlur }) {
   const players = event.players;
@@ -138,7 +139,7 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
                 title="Clear search"
                 onClick={() => setEntryQuery('')}
               >
-                ×
+                <IconClose width={12} height={12} strokeWidth={2.3} />
               </button>
             ) : null}
           </div>
@@ -159,9 +160,9 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
                   onFocus={onFieldFocus}
                   onBlur={(e) => { renameEntry(i, e.target.value); onFieldBlur?.(); }}
                 />
-                <button className="mv" title="Move up entry number" onClick={() => moveEntry(i, -1)}>▲</button>
-                <button className="mv" title="Move down entry number" onClick={() => moveEntry(i, 1)}>▼</button>
-                <button className="del" title="Remove" onClick={() => removeEntry(i)}>✕</button>
+                <button className="mv" title="Move up entry number" onClick={() => moveEntry(i, -1)}><IconArrowUp width={12} height={12} strokeWidth={2.3} /></button>
+                <button className="mv" title="Move down entry number" onClick={() => moveEntry(i, 1)}><IconArrowDown width={12} height={12} strokeWidth={2.3} /></button>
+                <button className="del" title="Remove" onClick={() => removeEntry(i)}><IconClose width={12} height={12} strokeWidth={2.3} /></button>
               </div>
             ))}
             {query && !visibleEntries.length ? (

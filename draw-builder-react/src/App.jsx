@@ -25,6 +25,8 @@ import { getEditorId, getEditorName, setEditorName } from './utils/editorIdentit
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
 import { ensureNotices } from './utils/notices';
 import NoticeBoard from './components/NoticeBoard';
+import ThemeToggle from './components/ThemeToggle';
+import { IconWarning, IconInfo, IconClose, IconEye, IconEyeOff, IconShuttlecock } from './components/Icon';
 
 export default function App({ user }) {
   const saved = loadState();
@@ -518,11 +520,15 @@ export default function App({ user }) {
   return (
     <>
       <header>
-        <div>
-          <h1>Galle Zonal Draw Builder</h1>
-          <div className="sub">Tournament draws, schedules &amp; scores</div>
+        <div className="header-id">
+          <span className="header-mark"><IconShuttlecock width={19} height={19} strokeWidth={2} /></span>
+          <div>
+            <h1>Galle Zonal Draw Builder</h1>
+            <div className="sub">Tournament draws, schedules &amp; scores</div>
+          </div>
         </div>
         <div className="spacer" />
+        <ThemeToggle />
         {user && (
           <>
             <a className="btn small secondary" href="/" title="Back to your tournaments">← My tournaments</a>
@@ -559,8 +565,11 @@ export default function App({ user }) {
 
       {notice && (
         <div className={'edit-notice ' + (notice.kind === 'conflict' ? 'edit-notice-conflict' : 'edit-notice-info')}>
-          <span>{notice.kind === 'conflict' ? '⚠️' : 'ℹ️'} {notice.text}</span>
-          <button type="button" className="edit-notice-close" onClick={() => setNotice(null)} title="Dismiss">×</button>
+          <span className="edit-notice-body">
+            {notice.kind === 'conflict' ? <IconWarning width={15} height={15} /> : <IconInfo width={15} height={15} />}
+            {notice.text}
+          </span>
+          <button type="button" className="edit-notice-close" onClick={() => setNotice(null)} title="Dismiss"><IconClose width={13} height={13} /></button>
         </div>
       )}
 
@@ -620,7 +629,8 @@ export default function App({ user }) {
               title={event.hidden ? 'Hidden from the watch link — click to reveal it' : 'Visible on the watch link — click to hide it'}
               onClick={() => updateEvent((ev) => ({ ...ev, hidden: !ev.hidden }))}
             >
-              {event.hidden ? '🙈 Hidden' : '👁 Visible'}
+              {event.hidden ? <IconEyeOff width={13} height={13} /> : <IconEye width={13} height={13} />}
+              {event.hidden ? 'Hidden' : 'Visible'}
             </button>
             {event.bracket ? (
               <>

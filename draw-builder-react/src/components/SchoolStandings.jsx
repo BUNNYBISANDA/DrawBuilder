@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { computeSchoolStandings } from '../utils/standings';
+import { IconSchool, IconChevronUp, IconChevronDown } from './Icon';
 
-const MEDALS = ['🥇', '🥈', '🥉'];
+const RANK_CLASS = ['rank-1', 'rank-2', 'rank-3'];
 
 export default function SchoolStandings({ bracket }) {
   const [expanded, setExpanded] = useState(false);
@@ -20,18 +21,18 @@ export default function SchoolStandings({ bracket }) {
         onClick={() => setExpanded((v) => !v)}
         title={expanded ? 'Collapse school standings' : 'Show full school standings'}
       >
-        <span className="school-bar-label">🏫 School standings <span className="school-bar-scope">this draw</span></span>
+        <span className="school-bar-label"><IconSchool width={14} height={14} /> School standings <span className="school-bar-scope">this draw</span></span>
         <span className="school-bar-chips">
           {top.map((s, i) => (
             <span className="school-chip" key={s.code}>
-              <span className="school-chip-rank">{MEDALS[i] || `#${i + 1}`}</span>
+              <span className={'school-chip-rank ' + (RANK_CLASS[i] || '')}>{i + 1}</span>
               <span className="school-chip-code">{s.code}</span>
               <span className="school-chip-record">{s.wins}-{s.losses}</span>
             </span>
           ))}
           {rest.length ? <span className="school-chip school-chip-more">+{rest.length} more</span> : null}
         </span>
-        <span className="school-bar-caret">{expanded ? '▲' : '▼'}</span>
+        <span className="school-bar-caret">{expanded ? <IconChevronUp width={11} height={11} strokeWidth={2.5} /> : <IconChevronDown width={11} height={11} strokeWidth={2.5} />}</span>
       </button>
 
       {expanded && (
@@ -52,7 +53,7 @@ export default function SchoolStandings({ bracket }) {
                 const pct = played ? Math.round((s.wins / played) * 100) : 0;
                 return (
                   <tr key={s.code}>
-                    <td>{MEDALS[i] || i + 1}</td>
+                    <td>{i + 1}</td>
                     <td>{s.code}</td>
                     <td>{s.wins}</td>
                     <td>{s.losses}</td>

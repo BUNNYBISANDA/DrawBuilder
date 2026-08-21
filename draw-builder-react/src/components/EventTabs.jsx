@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { categorySortKey } from '../utils/eventMeta';
+import { IconEye, IconEyeOff, IconPencil, IconChevronDown } from './Icon';
 
 export default function EventTabs({ events, active, onSelect, onEdit, onAddClick, onToggleHidden, readOnly = false }) {
   const [open, setOpen] = useState(false);
@@ -49,7 +50,7 @@ export default function EventTabs({ events, active, onSelect, onEdit, onAddClick
         title={`${events.length} event${events.length === 1 ? '' : 's'} in this tournament`}
       >
         <span className="evt-select-name">{current ? current.name : 'Select event'}</span>
-        <span className="evt-select-caret">▾</span>
+        <span className="evt-select-caret"><IconChevronDown width={11} height={11} strokeWidth={2.5} /></span>
       </button>
 
       {open && (
@@ -73,7 +74,7 @@ export default function EventTabs({ events, active, onSelect, onEdit, onAddClick
                       title={ev.hidden ? 'Show this draw on the watch link' : 'Hide this draw from the watch link'}
                       onClick={() => onToggleHidden(i)}
                     >
-                      {ev.hidden ? '🙈' : '👁'}
+                      {ev.hidden ? <IconEyeOff width={13} height={13} /> : <IconEye width={13} height={13} />}
                     </button>
                   )}
                 </div>
@@ -85,7 +86,7 @@ export default function EventTabs({ events, active, onSelect, onEdit, onAddClick
 
       {!readOnly && (
         <>
-          <button type="button" className="btn small secondary evt-edit" title="Edit this event's category / gender / type" onClick={() => onEdit(active)}>✎</button>
+          <button type="button" className="btn small secondary evt-edit" title="Edit this event's category / gender / type" onClick={() => onEdit(active)}><IconPencil width={13} height={13} /></button>
           <button type="button" className="btn small secondary evt-edit" title="Add a new event" onClick={onAddClick}>+</button>
         </>
       )}

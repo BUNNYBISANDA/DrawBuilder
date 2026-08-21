@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import Footer from './components/Footer';
+import ThemeToggle from './components/ThemeToggle';
+import { IconPencil, IconTrophy, IconCopy, IconArrowUpRight, IconPlus, IconCalendar } from './components/Icon';
 import { listMyTournaments, createTournament, renameTournament } from './utils/tournamentSync';
 import { signOut } from './utils/auth';
 import { DEFAULT_EVENTS } from './utils/eventShape';
@@ -83,11 +85,15 @@ export default function Dashboard({ user }) {
   return (
     <>
       <header>
-        <div>
-          <h1>Your tournaments</h1>
-          <div className="sub">Signed in as {user.email}</div>
+        <div className="header-id">
+          <span className="header-mark"><IconTrophy width={19} height={19} strokeWidth={2} /></span>
+          <div>
+            <h1>Your tournaments</h1>
+            <div className="sub">Signed in as {user.email}</div>
+          </div>
         </div>
         <div className="spacer" />
+        <ThemeToggle />
         <button type="button" className="btn small secondary" onClick={() => signOut()}>Log out</button>
       </header>
 
@@ -101,13 +107,17 @@ export default function Dashboard({ user }) {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
-          <button type="submit" className="btn" disabled={creating}>{creating ? 'Creating…' : '+ New tournament'}</button>
+          <button type="submit" className="btn" disabled={creating}>
+            <IconPlus width={14} height={14} strokeWidth={2.4} />
+            {creating ? 'Creating…' : 'New tournament'}
+          </button>
         </form>
 
         {tournaments === null ? (
           <p className="hint">Loading your tournaments…</p>
         ) : !tournaments.length ? (
           <div className="empty">
+            <span className="empty-icon"><IconTrophy width={26} height={26} strokeWidth={1.6} /></span>
             <h3>No tournaments yet</h3>
             <p>Create your first one above to get started. Already have an edit link from before accounts existed? Open it while signed in and it'll be added to your list automatically.</p>
           </div>
@@ -117,6 +127,7 @@ export default function Dashboard({ user }) {
               const eventCount = t.data?.events?.length || 0;
               return (
                 <div className="dashboard-row" key={t.id}>
+                  <span className="dashboard-row-mark"><IconTrophy width={17} height={17} strokeWidth={2} /></span>
                   <div className="dashboard-row-main">
                     {renamingId === t.id ? (
                       <input
@@ -137,16 +148,23 @@ export default function Dashboard({ user }) {
                         title="Rename this tournament"
                         onClick={() => startRename(t)}
                       >
-                        {t.name || 'Untitled tournament'} <span className="dashboard-rename-icon">✎</span>
+                        {t.name || 'Untitled tournament'} <span className="dashboard-rename-icon"><IconPencil width={12} height={12} strokeWidth={2} /></span>
                       </button>
                     )}
-                    <div className="dashboard-row-meta">{eventCount} event{eventCount === 1 ? '' : 's'} · updated {new Date(t.updated_at).toLocaleDateString()}</div>
+                    <div className="dashboard-row-meta">
+                      <IconCalendar width={12} height={12} strokeWidth={2} />
+                      {eventCount} event{eventCount === 1 ? '' : 's'} &middot; updated {new Date(t.updated_at).toLocaleDateString()}
+                    </div>
                   </div>
                   <div className="dashboard-row-actions">
-                    <a className="btn small secondary" href={editLink(t.id)}>Go to tournament</a>
                     <button type="button" className="btn small secondary" onClick={() => copyWatch(t.id)}>
+                      <IconCopy width={13} height={13} strokeWidth={2.2} />
                       {copiedId === t.id ? 'Copied!' : 'Copy watch link'}
                     </button>
+                    <a className="btn small" href={editLink(t.id)}>
+                      Open
+                      <IconArrowUpRight width={13} height={13} strokeWidth={2.3} />
+                    </a>
                   </div>
                 </div>
               );

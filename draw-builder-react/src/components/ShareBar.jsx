@@ -1,4 +1,13 @@
 import { useState } from 'react';
+import { IconWifi, IconWifiOff, IconAlertCircle } from './Icon';
+
+const STATUS_ICON = {
+  connecting: IconWifi,
+  synced: IconWifi,
+  error: IconAlertCircle,
+  offline: IconWifiOff,
+  local: IconWifiOff,
+};
 
 const STATUS_LABEL = {
   connecting: 'Connecting…',
@@ -59,10 +68,14 @@ export default function ShareBar({ status, editorName = '', onChangeName, editor
     setEditingName(false);
   }
 
+  const StatusIcon = STATUS_ICON[status] || IconWifi;
+
   return (
     <div className="share-bar" title={STATUS_TITLE[status]}>
-      <span className={'sync-dot sync-' + status} />
-      <span className="sync-label">{STATUS_LABEL[status] || status}</span>
+      <span className={'sync-status sync-' + status}>
+        <StatusIcon width={13} height={13} strokeWidth={2.5} />
+        {STATUS_LABEL[status] || status}
+      </span>
       {status !== 'local' && (
         <>
           {editingName ? (

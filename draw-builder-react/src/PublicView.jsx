@@ -10,6 +10,8 @@ import { getTournamentIdFromUrl, loadTournament, subscribeTournament } from './u
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
 import { ensureNotices } from './utils/notices';
 import NoticeBoard from './components/NoticeBoard';
+import ThemeToggle from './components/ThemeToggle';
+import { IconWifi } from './components/Icon';
 import { countSearchMatches } from './utils/bracket';
 
 export default function PublicView() {
@@ -107,7 +109,8 @@ export default function PublicView() {
           <div className="sub">Galle Zonal — live draw &amp; schedule, view only</div>
         </div>
         <div className="spacer" />
-        <span className="sync-dot sync-synced" title="Live" />
+        <ThemeToggle />
+        <span className="sync-status sync-synced" title="Live"><IconWifi width={13} height={13} strokeWidth={2.5} />Live</span>
         <EventTabs
           events={visibleEvents}
           active={visibleActive}

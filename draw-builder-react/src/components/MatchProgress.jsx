@@ -1,4 +1,5 @@
 import { flattenMatches } from '../utils/bracket';
+import { IconCheckCircle, IconCircleDashed, IconClock, IconArrowRight, IconAlertCircle } from './Icon';
 
 export default function MatchProgress({ bracket }) {
   if (!bracket) return null;
@@ -33,11 +34,11 @@ export default function MatchProgress({ bracket }) {
         ))}
       </div>
       <div className="mp-legend">
-        <span className="mp-chip mp-completed"><i /> Completed <b>{counts.completed}</b></span>
-        <span className="mp-chip mp-toplay"><i /> To play <b>{toPlay}</b></span>
-        <span className="mp-chip mp-inprogress"><i /> In progress <b>{counts['in-progress']}</b></span>
-        {counts.walkover > 0 && <span className="mp-chip mp-walkover"><i /> Walkover <b>{counts.walkover}</b></span>}
-        {counts.retired > 0 && <span className="mp-chip mp-retired"><i /> Retired <b>{counts.retired}</b></span>}
+        <span className="mp-chip mp-completed"><IconCheckCircle width={13} height={13} strokeWidth={2.4} /> Completed <b>{counts.completed}</b></span>
+        <span className="mp-chip mp-toplay"><IconCircleDashed width={13} height={13} strokeWidth={2} /> To play <b>{toPlay}</b></span>
+        <span className="mp-chip mp-inprogress"><IconClock width={13} height={13} strokeWidth={2.2} /> In progress <b>{counts['in-progress']}</b></span>
+        {counts.walkover > 0 && <span className="mp-chip mp-walkover"><IconArrowRight width={13} height={13} strokeWidth={2.4} /> Walkover <b>{counts.walkover}</b></span>}
+        {counts.retired > 0 && <span className="mp-chip mp-retired"><IconAlertCircle width={13} height={13} strokeWidth={2.2} /> Retired <b>{counts.retired}</b></span>}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { newNotice } from '../utils/notices';
+import { IconBell, IconClose, IconChevronUp, IconChevronDown } from './Icon';
 
 // Tournament-wide announcements — shown above every event, for the whole
 // tournament this ?t= link points to. readOnly renders the same board with
@@ -14,7 +15,7 @@ export default function NoticeBoard({ notices, onChange, readOnly }) {
       <div className="notice-board">
         {notices.map((n) => (
           <div className="notice-card" key={n.id}>
-            <span className="notice-icon">📢</span>
+            <span className="notice-icon"><IconBell width={14} height={14} /></span>
             <p className="notice-text">{n.text}</p>
           </div>
         ))}
@@ -36,18 +37,18 @@ export default function NoticeBoard({ notices, onChange, readOnly }) {
   return (
     <div className={'notice-board notice-board-editable' + (open ? ' open' : '')}>
       <button type="button" className="notice-board-toggle" onClick={() => setOpen((v) => !v)}>
-        <span className="notice-board-toggle-label">📢 Notices <span className="school-bar-scope">for the whole tournament</span></span>
+        <span className="notice-board-toggle-label"><IconBell width={14} height={14} /> Notices <span className="school-bar-scope">for the whole tournament</span></span>
         <span className="notice-board-toggle-count">{notices.length ? `${notices.length} posted` : 'None posted'}</span>
-        <span className="school-bar-caret">{open ? '▲' : '▼'}</span>
+        <span className="school-bar-caret">{open ? <IconChevronUp width={11} height={11} strokeWidth={2.5} /> : <IconChevronDown width={11} height={11} strokeWidth={2.5} />}</span>
       </button>
 
       {open && (
         <div className="notice-board-panel">
           {notices.map((n) => (
             <div className="notice-card" key={n.id}>
-              <span className="notice-icon">📢</span>
+              <span className="notice-icon"><IconBell width={14} height={14} /></span>
               <p className="notice-text">{n.text}</p>
-              <button type="button" className="notice-remove" title="Remove this notice" onClick={() => removeNotice(n.id)}>✕</button>
+              <button type="button" className="notice-remove" title="Remove this notice" onClick={() => removeNotice(n.id)}><IconClose width={12} height={12} /></button>
             </div>
           ))}
           <div className="notice-add">
