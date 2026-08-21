@@ -199,6 +199,7 @@ export default function EntriesPanel({ event, onUpdateEvent, onGenerate, onExpor
             style={{ width: '100%' }}
           >
             <option value="auto">Auto from entries</option>
+            <option value="2">2 draw</option>
             <option value="4">4 draw</option>
             <option value="8">8 draw</option>
             <option value="16">16 draw</option>
