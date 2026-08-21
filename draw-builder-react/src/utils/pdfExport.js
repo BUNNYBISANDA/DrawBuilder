@@ -2,6 +2,34 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { BOX_H, VGAP, TOP } from './layout';
 
+// The PDF is a printed page, not a themed screen — it always renders with
+// the light palette regardless of the app's current theme, and never
+// carries the "checked in" highlight (that's a live-editing aid, not
+// something that belongs on a printed draw).
+const LIGHT_TOKENS = {
+  '--court': '#5C1D10', '--court-soft': '#8C2814', '--court-tint': '#F6EEE4', '--tape': '#241009',
+  '--cork': '#B4823C', '--cork-soft': '#F1E4C9', '--cork-strong': '#6E4A12',
+  '--hall': '#FBF7EE', '--card': '#FFFFFF', '--panel-alt': '#FBF6EA', '--line': '#E7DCC7', '--hairline': '#EFE6D2',
+  '--ink': '#241A12', '--ink-2': '#6B5D4C', '--ink-3': '#A69A85',
+  '--win': '#EAF3E1', '--win-border': '#4C7A3E', '--win-ink': '#3C5E30',
+  '--bye': '#F1ECDF',
+  '--danger': '#B23A2A', '--danger-soft': '#E8C2B8', '--danger-tint': '#FBEEE6', '--danger-ink': '#8C3A1E',
+  '--info': '#3E7BB0', '--info-tint': '#EAF2F8',
+  '--gold-strong': '#E0A800', '--gold-tint': '#FFE9A8',
+  '--shadow-1': '0 1px 2px rgba(36,26,18,.06),0 1px 0 rgba(36,26,18,.04)',
+  '--shadow-2': '0 10px 28px rgba(36,26,18,.16),0 2px 6px rgba(36,26,18,.08)',
+};
+
+function forceLightTheme(el) {
+  Object.entries(LIGHT_TOKENS).forEach(([k, v]) => el.style.setProperty(k, v));
+  // Custom properties alone aren't enough — `color`/`background` on
+  // elements below this point that don't re-declare them (most of the
+  // bracket markup) would otherwise inherit the *computed* dark-theme
+  // value from <body> rather than re-resolving var(--ink) locally.
+  el.style.color = 'var(--ink)';
+  el.style.background = 'var(--hall)';
+}
+
 export function safeFileName(value) {
   return (value || 'badminton-draw')
     .toLowerCase()
@@ -32,6 +60,8 @@ function cloneCanvasForExport(canvasEl, layout) {
   clone.style.width = layout.width + 'px';
   clone.style.height = layout.height + 'px';
   clone.querySelectorAll('[contenteditable]').forEach((el) => el.removeAttribute('contenteditable'));
+  // "Checked in" is a live-editing aid, not something a printed draw needs.
+  clone.querySelectorAll('.slot.present').forEach((el) => el.classList.remove('present'));
   return clone;
 }
 
@@ -53,6 +83,7 @@ function createPdfPageNode(canvasEl, layout, pageIndex, slotsPerPage, brSize) {
     'pointer-events:none',
     'z-index:9999',
   ].join(';');
+  forceLightTheme(host);
 
   const page = document.createElement('div');
   page.style.cssText = [
