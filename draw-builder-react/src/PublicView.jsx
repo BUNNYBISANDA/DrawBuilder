@@ -46,8 +46,13 @@ export default function PublicView() {
   useEffect(() => {
     if (!supabaseEnabled || !tournamentId || status === 'disabled') return;
     return subscribeTournament(tournamentId, (remote) => {
+      // Only the initial load adopts the organizer's active tab as the
+      // viewer's starting point (above). After that, a viewer's selected
+      // event is theirs alone — the editor switching tabs while running
+      // the tournament must never yank a watching player/coach to a
+      // different draw. Live data (scores, byes, notices) still refreshes
+      // in place no matter which event they're looking at.
       setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
-      setActive(remote.active || 0);
       setNotices(ensureNotices(remote.notices));
     });
   }, [tournamentId, status]);
