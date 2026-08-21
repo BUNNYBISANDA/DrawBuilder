@@ -12,24 +12,57 @@ export function setTournamentIdInUrl(id) {
   window.history.replaceState({}, '', url);
 }
 
-export async function createTournament(initialState) {
+export async function createTournament(initialState, ownerId, name) {
   const { data, error } = await supabase
     .from('tournaments')
-    .insert({ data: initialState })
+    .insert({ data: initialState, owner_id: ownerId || null, name: name || 'Untitled tournament' })
     .select('id')
     .single();
   if (error) throw error;
   return data.id;
 }
 
+// Merges the row's data blob with its owner/name so callers get one flat
+// object — same shape subscribeTournament's realtime payload uses below.
+function flattenRow(row) {
+  if (!row) return null;
+  return { ...row.data, ownerId: row.owner_id, tournamentName: row.name };
+}
+
 export async function loadTournament(id) {
   const { data, error } = await supabase
     .from('tournaments')
-    .select('data')
+    .select('data, owner_id, name')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
-  return data ? data.data : null;
+  return flattenRow(data);
+}
+
+// Every tournament this account owns, most recently updated first — the
+// list shown on the dashboard.
+export async function listMyTournaments(ownerId) {
+  const { data, error } = await supabase
+    .from('tournaments')
+    .select('id, name, updated_at, data')
+    .eq('owner_id', ownerId)
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function renameTournament(id, name) {
+  const { error } = await supabase.from('tournaments').update({ name }).eq('id', id);
+  if (error) throw error;
+}
+
+// Claims a legacy tournament (created before accounts existed, owner_id
+// still null) for the signed-in user opening its edit link — the
+// migration path for links shared before this app had logins. A no-op
+// if the tournament is already owned by someone.
+export async function claimTournament(id, ownerId) {
+  const { error } = await supabase.from('tournaments').update({ owner_id: ownerId }).eq('id', id).is('owner_id', null);
+  if (error) throw error;
 }
 
 export async function saveTournament(id, state) {
@@ -48,7 +81,7 @@ export function subscribeTournament(id, onRemoteChange) {
     .on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'tournaments', filter: `id=eq.${id}` },
-      (payload) => onRemoteChange(payload.new.data)
+      (payload) => onRemoteChange(flattenRow({ data: payload.new.data, owner_id: payload.new.owner_id, name: payload.new.name }))
     )
     .subscribe();
   return () => supabase.removeChannel(channel);

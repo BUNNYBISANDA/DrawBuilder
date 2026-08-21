@@ -18,17 +18,22 @@ import { supabaseEnabled } from './utils/supabase';
 import {
   getTournamentIdFromUrl, setTournamentIdInUrl,
   createTournament, loadTournament, saveTournament, subscribeTournament, subscribePresence,
+  claimTournament,
 } from './utils/tournamentSync';
+import { signOut } from './utils/auth';
 import { getEditorId, getEditorName, setEditorName } from './utils/editorIdentity';
 import { DEFAULT_EVENTS, ensureEventShape } from './utils/eventShape';
 import { ensureNotices } from './utils/notices';
 import NoticeBoard from './components/NoticeBoard';
 
-export default function App() {
+export default function App({ user }) {
   const saved = loadState();
   const [events, setEvents] = useState(() => (saved?.events?.length ? saved.events.map(ensureEventShape) : DEFAULT_EVENTS));
   const [active, setActive] = useState(saved?.active || 0);
   const [notices, setNotices] = useState(() => ensureNotices(saved?.notices));
+  // Set once we learn this tournament belongs to a different account —
+  // blocks the editor and shows an access-denied screen instead.
+  const [accessDenied, setAccessDenied] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [moveByes, setMoveByes] = useState(false);
   const [swapSlot, setSwapSlot] = useState(null);
@@ -188,6 +193,19 @@ export default function App() {
           const remote = await loadTournament(knownId);
           if (remote) {
             if (cancelled) return;
+            if (remote.ownerId && user && remote.ownerId !== user.id) {
+              // Belongs to a different account — show the access-denied
+              // screen instead of loading any of its data into the editor.
+              setAccessDenied(true);
+              setTournamentId(knownId);
+              setSyncStatus('synced');
+              return;
+            }
+            if (!remote.ownerId && user) {
+              // A legacy link from before accounts existed — claim it for
+              // whoever opens it first while signed in.
+              claimTournament(knownId, user.id).catch((err) => console.error(err));
+            }
             setEvents(remote.events?.length ? remote.events.map(ensureEventShape) : DEFAULT_EVENTS);
             setActive(remote.active || 0);
             setNotices(ensureNotices(remote.notices));
@@ -197,7 +215,7 @@ export default function App() {
             return;
           }
         }
-        const id = await createTournament({ events, active, notices });
+        const id = await createTournament({ events, active, notices }, user?.id);
         setTournamentIdInUrl(id);
         if (!cancelled) { setTournamentId(id); setSyncStatus('synced'); }
       } catch (err) {
@@ -211,7 +229,7 @@ export default function App() {
 
   // Live updates from other people viewing/editing the same tournament link.
   useEffect(() => {
-    if (!supabaseEnabled || !tournamentId) return;
+    if (!supabaseEnabled || !tournamentId || accessDenied) return;
     return subscribeTournament(tournamentId, (remote) => {
       const fromSelf = remote.editorId && remote.editorId === editorIdRef.current;
       // "Ours to protect" covers both unsynced changes and fields currently
@@ -287,7 +305,7 @@ export default function App() {
     // that survives a dropped connection or a refresh mid-outage.
     saveState({ events, active, notices, pendingSync: pendingSyncRef.current, tournamentId });
 
-    if (!supabaseEnabled || !tournamentId) return;
+    if (!supabaseEnabled || !tournamentId || accessDenied) return;
     if (skipNextSave.current) { skipNextSave.current = false; return; }
 
     clearTimeout(saveTimer.current);
@@ -295,7 +313,7 @@ export default function App() {
       pushToRemote(tournamentId, { events, active, notices });
     }, 600);
     return () => clearTimeout(saveTimer.current);
-  }, [events, active, notices, tournamentId]);
+  }, [events, active, notices, tournamentId, accessDenied]);
 
   function updateNotices(next) {
     noticesDirtyRef.current = true;
@@ -487,6 +505,16 @@ export default function App() {
 
   useEffect(() => { setSearchFocus(0); }, [searchTerm, active]);
 
+  if (accessDenied) {
+    return (
+      <div className="public-message">
+        <h2>This tournament belongs to another account</h2>
+        <p>Ask the owner to share the watch link instead, or sign in as the account that created it.</p>
+        <a className="btn" href="/">My tournaments</a>
+      </div>
+    );
+  }
+
   return (
     <>
       <header>
@@ -495,6 +523,12 @@ export default function App() {
           <div className="sub">Tournament draws, schedules &amp; scores</div>
         </div>
         <div className="spacer" />
+        {user && (
+          <>
+            <a className="btn small secondary" href="/" title="Back to your tournaments">← My tournaments</a>
+            <button type="button" className="btn small secondary" onClick={() => signOut()} title={user.email}>Log out</button>
+          </>
+        )}
         <ShareBar
           status={syncStatus}
           editorName={editorName}
