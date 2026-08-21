@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Footer from './components/Footer';
-import { listMyTournaments, createTournament } from './utils/tournamentSync';
+import { listMyTournaments, createTournament, renameTournament } from './utils/tournamentSync';
 import { signOut } from './utils/auth';
 import { DEFAULT_EVENTS } from './utils/eventShape';
 
@@ -33,6 +33,8 @@ export default function Dashboard({ user }) {
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameDraft, setRenameDraft] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +62,22 @@ export default function Dashboard({ user }) {
     await copyToClipboard(watchLink(id));
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1800);
+  }
+
+  function startRename(t) {
+    setRenamingId(t.id);
+    setRenameDraft(t.name || '');
+  }
+
+  async function saveRename(id) {
+    const name = renameDraft.trim() || 'Untitled tournament';
+    setRenamingId(null);
+    setTournaments((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)));
+    try {
+      await renameTournament(id, name);
+    } catch (err) {
+      setError(err.message || 'Could not rename the tournament.');
+    }
   }
 
   return (
@@ -100,11 +118,32 @@ export default function Dashboard({ user }) {
               return (
                 <div className="dashboard-row" key={t.id}>
                   <div className="dashboard-row-main">
-                    <div className="dashboard-row-name">{t.name || 'Untitled tournament'}</div>
+                    {renamingId === t.id ? (
+                      <input
+                        className="modal-input dashboard-rename-input"
+                        autoFocus
+                        value={renameDraft}
+                        onChange={(e) => setRenameDraft(e.target.value)}
+                        onBlur={() => saveRename(t.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.target.blur();
+                          if (e.key === 'Escape') setRenamingId(null);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="dashboard-row-name dashboard-row-name-btn"
+                        title="Rename this tournament"
+                        onClick={() => startRename(t)}
+                      >
+                        {t.name || 'Untitled tournament'} <span className="dashboard-rename-icon">✎</span>
+                      </button>
+                    )}
                     <div className="dashboard-row-meta">{eventCount} event{eventCount === 1 ? '' : 's'} · updated {new Date(t.updated_at).toLocaleDateString()}</div>
                   </div>
                   <div className="dashboard-row-actions">
-                    <a className="btn small secondary" href={editLink(t.id)}>Edit</a>
+                    <a className="btn small secondary" href={editLink(t.id)}>Go to tournament</a>
                     <button type="button" className="btn small secondary" onClick={() => copyWatch(t.id)}>
                       {copiedId === t.id ? 'Copied!' : 'Copy watch link'}
                     </button>

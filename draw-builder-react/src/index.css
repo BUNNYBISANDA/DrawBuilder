@@ -165,6 +165,10 @@ select:focus{outline:none;border-color:var(--court-soft)}
 .dashboard-list{display:flex;flex-direction:column;gap:10px}
 .dashboard-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
 .dashboard-row-name{font-weight:700;font-size:14.5px}
+.dashboard-row-name-btn{border:none;background:none;cursor:pointer;font-family:inherit;text-align:left;padding:2px 0;color:var(--ink)}
+.dashboard-rename-icon{font-size:11px;color:var(--ink-3);opacity:0;margin-left:2px}
+.dashboard-row-name-btn:hover .dashboard-rename-icon{opacity:1}
+.dashboard-rename-input{font-weight:700;font-size:14.5px;padding:5px 8px;max-width:320px}
 .dashboard-row-meta{font-size:12px;color:var(--ink-2);margin-top:2px}
 .dashboard-row-actions{display:flex;gap:6px;flex:none}
 @media(max-width:640px){
